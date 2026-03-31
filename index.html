@@ -52,9 +52,28 @@
         .swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
         .swipe-item .swipe-actions .action-date { background: #3B82F6; border-radius: 0; }
         .swipe-item .swipe-actions .action-delete { background: #EF4444; border-radius: 0; }
-        
-        /* Desktop context menu */
+        .mini-calendar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .mini-calendar { background: #151C2C; border-radius: 20px; padding: 20px; width: 100%; max-width: 320px; border: 1px solid rgba(255,255,255,0.1); }
+        .mini-calendar .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .mini-calendar .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+        .mini-calendar .cal-day { padding: 8px 0; border-radius: 10px; font-size: 14px; cursor: pointer; transition: background 0.15s; }
+        .mini-calendar .cal-day:hover { background: rgba(255,255,255,0.1); }
+        .mini-calendar .cal-day.selected { background: #7C3AED; color: white; font-weight: bold; }
+        .mini-calendar .cal-day.today { outline: 2px solid #7C3AED; outline-offset: -2px; }
+        .mini-calendar .cal-day.future { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+        .mini-calendar .cal-day.other-month { opacity: 0.3; }
+        .mini-calendar .cal-day-label { font-size: 11px; color: #8D9CB1; padding: 4px 0; font-weight: bold; }
+        .mini-calendar .cal-year-select { display: flex; align-items: center; gap: 6px; }
+        .mini-calendar .cal-year-select button { background: none; border: none; color: #8D9CB1; cursor: pointer; padding: 2px 6px; font-size: 12px; border-radius: 6px; transition: background 0.15s, color 0.15s; }
+        .mini-calendar .cal-year-select button:hover { background: rgba(255,255,255,0.1); color: white; }
+        .mini-calendar .cal-year-label { font-size: 13px; color: #7C3AED; font-weight: bold; cursor: pointer; min-width: 42px; text-align: center; }
+        .cal-year-dropdown { position: absolute; left: 0; top: 100%; background: #1E2538; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; max-height: 180px; overflow-y: auto; z-index: 10; min-width: 80px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .cal-year-dropdown button { display: block; width: 100%; padding: 8px 16px; background: none; border: none; color: #CBD5E1; font-size: 13px; cursor: pointer; text-align: center; transition: background 0.15s; }
+        .cal-year-dropdown button:hover { background: rgba(255,255,255,0.06); }
+        .cal-year-dropdown button.active-year { color: #7C3AED; font-weight: bold; background: rgba(124,58,237,0.1); }
+        /* Desktop context menu for contributions */
         .swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+        .swipe-item .desktop-menu-btn:hover { background: rgba(255,255,255,0.15); color: white; }
         @media (hover: hover) and (pointer: fine) {
             .swipe-item:hover .desktop-menu-btn, .swipe-item .desktop-menu-btn.active { display: flex; }
             .swipe-item:hover .swipe-content { padding-right: 48px; }
@@ -63,17 +82,18 @@
         .desktop-dropdown button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; background: none; border: none; color: #CBD5E1; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: background 0.15s; }
         .desktop-dropdown button:hover { background: rgba(255,255,255,0.06); }
         .desktop-dropdown button.delete-option { color: #F87171; }
-
-        /* Admin Swipe Items */
+        .desktop-dropdown button.delete-option:hover { background: rgba(239,68,68,0.1); }
+        /* Swipe items for admin lists (members & tasks) */
         .admin-swipe-item { position: relative; overflow: hidden; border-radius: 12px; }
-        .admin-swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease; }
+        .admin-swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease, padding-right 0.15s; }
         .admin-swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
         .admin-swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
-        .admin-swipe-item .swipe-actions .action-edit { background: #3B82F6; }
-        .admin-swipe-item .swipe-actions .action-delete { background: #EF4444; }
-        .admin-swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; align-items: center; justify-content: center; }
+        .admin-swipe-item .swipe-actions .action-edit { background: #3B82F6; border-radius: 0; }
+        .admin-swipe-item .swipe-actions .action-delete { background: #EF4444; border-radius: 0; }
+        .admin-swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+        .admin-swipe-item .desktop-menu-btn:hover { background: rgba(255,255,255,0.15); color: white; }
         @media (hover: hover) and (pointer: fine) {
-            .admin-swipe-item:hover .desktop-menu-btn { display: flex; }
+            .admin-swipe-item:hover .desktop-menu-btn, .admin-swipe-item .desktop-menu-btn.active { display: flex; }
             .admin-swipe-item:hover .swipe-content { padding-right: 48px; }
         }
     </style>
@@ -88,7 +108,8 @@
 
         <section class="bg-cardBg rounded-3xl p-4 sm:p-6 mb-6 shadow-xl border border-white/5">
             <h2 id="leadStatus" class="text-lg sm:text-xl font-bold mb-3 text-center">Laster data...</h2>
-            <div id="periodButtons" class="flex flex-wrap gap-2 text-[11px] text-textSub justify-center mb-4"></div>
+            <div id="periodButtons" class="flex flex-wrap gap-2 text-[11px] text-textSub justify-center mb-4">
+            </div>
             <div class="flex justify-center">
                 <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;"></canvas>
             </div>
@@ -97,11 +118,37 @@
 
         <section class="flex-1 space-y-6">
             <h2 id="logHeading" class="text-2xl sm:text-3xl font-extrabold">Historikk</h2>
-            <div id="todayHistory" class="space-y-4"></div>
+            <div id="todayHistory" class="space-y-6">
+                </div>
         </section>
 
         <button onclick="showTaskSelection()" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-accent text-white px-8 py-4 rounded-full font-bold shadow-2xl shadow-accent/40 text-lg flex items-center gap-2.5 z-10 active:scale-95 transition-transform">
             <i class="fas fa-plus text-sm"></i> Legg til bidrag
+        </button>
+    </div>
+
+    <div id="taskSelectionScreen" class="hidden fixed inset-0 bg-appBg z-50 p-5 flex flex-col overflow-y-auto">
+        <header class="flex justify-between items-center mb-6">
+            <button onclick="hideTaskSelection()" class="text-textMain text-sm flex items-center gap-1.5"><i class="fas fa-chevron-left"></i> Tilbake</button>
+            <h1 class="text-xl font-bold">Nytt bidrag</h1>
+            <div></div>
+        </header>
+
+        <div class="relative mb-6">
+            <label class="text-xs text-textSub mb-2 block ml-1 uppercase font-bold">Hvem er du?</label>
+            <select id="userPerforming" class="w-full bg-cardBg p-4 rounded-2xl text-textMain outline-none border border-white/10 appearance-none shadow-inner">
+                <option value="">Velg navn...</option>
+            </select>
+            <i class="fas fa-chevron-down absolute right-4 bottom-5 text-textSub pointer-events-none"></i>
+        </div>
+
+        <h2 class="text-2xl sm:text-4xl font-extrabold mb-6 sm:mb-8 leading-tight">Hva har du gjort i dag?</h2>
+        
+        <div id="taskBubbleContainer" class="flex flex-wrap gap-3 pb-32">
+            </div>
+
+        <button onclick="saveRegisteredTasks()" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10 active:scale-95 transition-transform">
+            Lagre
         </button>
     </div>
 
@@ -116,19 +163,55 @@
         </div>
     </div>
 
+    <div id="memberModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6" onclick="toggleModal('memberModal')">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4">Medlemmer</h3>
+            <div class="flex gap-2 mb-6">
+                <input type="text" id="newMemberName" placeholder="Skriv navn..." class="flex-1 bg-appBg p-4 rounded-xl border border-white/10 text-sm">
+                <button onclick="addMember()" class="bg-accent px-5 rounded-xl font-bold"><i class="fas fa-plus"></i></button>
+            </div>
+            <div id="manageMembersList" class="space-y-2 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+            <button onclick="toggleModal('memberModal')" class="mt-8 w-full text-textSub font-bold">Tilbake</button>
+        </div>
+    </div>
+
+    <div id="taskAdminModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6" onclick="toggleModal('taskAdminModal')">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm overflow-y-auto max-h-[85vh]" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4">Oppgaver og Poeng</h3>
+            <div class="space-y-3 mb-6 bg-appBg p-4 rounded-2xl border border-white/5">
+                <input type="text" id="newTaskName" placeholder="F.eks. Støvsuge" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
+                <input type="number" id="newTaskPoints" placeholder="Antall poeng" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
+                <button onclick="addTaskType()" class="w-full bg-accent py-3 rounded-xl font-bold">Legg til oppgave</button>
+            </div>
+            <div id="manageTasksList" class="space-y-2 overflow-x-hidden"></div>
+            <button onclick="toggleModal('taskAdminModal')" class="mt-8 w-full text-textSub font-bold">Tilbake</button>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10 text-center">
+            <div class="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Er du sikker?</h3>
+            <p id="confirmMessage" class="text-textSub text-sm mb-8 italic">Dette kan ikke angres.</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirm()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold">Avbryt</button>
+                <button id="confirmExecuteBtn" class="flex-1 py-4 rounded-2xl bg-red-500 text-white font-bold shadow-lg shadow-red-500/20">Slett</button>
+            </div>
+        </div>
+    </div>
+
     <div id="renameModal" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6" onclick="closeRenameModal()">
         <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
             <div class="w-16 h-16 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
                 <i class="fas fa-pen"></i>
             </div>
-            <h3 id="renameModalTitle" class="text-xl font-bold mb-4 text-center">Endre oppgave</h3>
+            <h3 id="renameModalTitle" class="text-xl font-bold mb-4 text-center">Endre detaljer</h3>
             <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] uppercase text-textSub font-bold ml-1 mb-1 block">Navn på oppgave</label>
-                    <input type="text" id="renameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Navn...">
-                </div>
-                <div>
-                    <label class="text-[10px] uppercase text-textSub font-bold ml-1 mb-1 block">Poengverdi</label>
+                <input type="text" id="renameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Nytt navn...">
+                <div id="pointsEditContainer" class="hidden">
+                    <label class="text-[10px] text-textSub font-bold uppercase ml-1 mb-1 block">Poengverdi</label>
                     <input type="number" id="renamePointsInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Poeng...">
                 </div>
             </div>
@@ -139,13 +222,302 @@
         </div>
     </div>
 
-    <div id="taskSelectionScreen" class="hidden fixed inset-0 bg-appBg z-50 p-5 flex flex-col overflow-y-auto">
-        <header class="flex justify-between items-center mb-6">
-            <button onclick="hideTaskSelection()" class="text-textMain text-sm flex items-center gap-1.5"><i class="fas fa-chevron-left"></i> Tilbake</button>
-            <h1 class="text-xl font-bold">Nytt bidrag</h1>
-            <div></div>
-        </header>
-        <div class="relative mb-6">
-            <label class="text-xs text-textSub mb-2 block ml-1 uppercase font-bold">Hvem er du?</label>
-            <select id="userPerforming" class="w-full bg-cardBg p-4 rounded-2xl text-textMain border border-white/10 appearance-none">
-                <option
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
+            authDomain: "kollektivet-fc493.firebaseapp.com",
+            databaseURL: "https://kollektivet-fc493-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "kollektivet-fc493",
+            storageBucket: "kollektivet-fc493.firebasestorage.app",
+            messagingSenderId: "131176107292",
+            appId: "1:131176107292:web:1a375b8560e00bba4b7ed9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let members = [], taskTypes = [], history = [], myChart, selectedTasksOnScreen = [];
+        let activePeriod = 'all'; 
+        let editTarget = null; // {type: 'member'|'task', id: number}
+
+        db.ref('/').on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            members = data.members || [];
+            taskTypes = data.taskTypes || [];
+            history = data.history || [];
+            renderAll();
+        });
+
+        function sync() { db.ref('/').set({ members, taskTypes, history }); }
+
+        function getFriendlyDate(isoString) {
+            const date = new Date(isoString);
+            const today = new Date();
+            const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+            if (date.toDateString() === today.toDateString()) return "I dag";
+            if (date.toDateString() === yesterday.toDateString()) return "I går";
+            return date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+
+        function renderAll() {
+            renderLeaderboardAndChart();
+            renderTodayHistory();
+            renderAdminLists();
+            const sel = document.getElementById('userPerforming');
+            sel.innerHTML = '<option value="">Hvem er du?</option>' + members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        }
+
+        function renderLeaderboardAndChart() {
+            const statusEl = document.getElementById('leadStatus');
+            const legendEl = document.getElementById('chartLegend');
+            if (!members.length) { statusEl.innerText = "Legg til medlemmer!"; return; }
+            statusEl.innerText = "Oversikt";
+            
+            const membersWithPoints = members.map(m => ({
+                ...m,
+                points: history.filter(h => h.userId === m.id).reduce((s, h) => s + h.points, 0)
+            }));
+
+            legendEl.innerHTML = membersWithPoints.map(m => `<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:${m.color}"></span>${m.name.split(' ')[0]}, ${m.points}p</div>`).join('');
+
+            const ctx = document.getElementById('pointsChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: membersWithPoints.map(m => m.points || 1),
+                        backgroundColor: membersWithPoints.map(m => m.color),
+                        borderWidth: 0
+                    }]
+                },
+                options: { cutout: '80%', plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderTodayHistory() {
+            const hEl = document.getElementById('todayHistory');
+            if (!history.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert.</p>`; return; }
+
+            let html = "";
+            let lastDateLabel = "";
+
+            history.forEach(h => {
+                const m = members.find(mem => mem.id === h.userId);
+                if(!m) return;
+                
+                const dateLabel = getFriendlyDate(h.date);
+                if (dateLabel !== lastDateLabel) {
+                    html += `<h3 class="text-[11px] font-bold text-textSub uppercase tracking-widest mt-6 mb-2 ml-1">${dateLabel}</h3>`;
+                    lastDateLabel = dateLabel;
+                }
+
+                html += `
+                <div class="swipe-item rounded-2xl" data-id="${h.id}">
+                    <div class="swipe-actions">
+                        <button class="action-delete" onclick="deleteHistory(${h.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl border border-white/5">
+                        <button class="desktop-menu-btn" onclick="showDesktopMenu(event, ${h.id}, 'history')"><i class="fas fa-ellipsis-v"></i></button>
+                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs" style="background:${m.color}">${m.name.substring(0,2).toUpperCase()}</span>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                            <p class="text-[10px] text-textSub uppercase">+${h.points} poeng</p>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            hEl.innerHTML = html;
+            initSwipeHandlers();
+        }
+
+        function renderAdminLists() {
+            // MEDLEMMER - Bruker din admin-swipe-item struktur
+            const mList = document.getElementById('manageMembersList');
+            mList.innerHTML = members.map(m => `
+                <div class="admin-swipe-item" data-id="${m.id}">
+                    <div class="swipe-actions">
+                        <button class="action-edit" onclick="openRenameModal('member', ${m.id})"><i class="fas fa-pen"></i><span>Navn</span></button>
+                        <button class="action-delete" onclick="deleteMember(${m.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex justify-between items-center p-4 bg-appBg rounded-xl border border-white/5">
+                        <button class="desktop-menu-btn" onclick="showDesktopMenu(event, ${m.id}, 'member')"><i class="fas fa-ellipsis-v"></i></button>
+                        <div class="flex items-center gap-3">
+                            <span class="w-3 h-3 rounded-full" style="background:${m.color}"></span>
+                            <span class="text-sm font-bold">${m.name}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // OPPGAVER - Bruker din admin-swipe-item struktur
+            const tList = document.getElementById('manageTasksList');
+            tList.innerHTML = taskTypes.map(t => `
+                <div class="admin-swipe-item" data-id="${t.id}">
+                    <div class="swipe-actions">
+                        <button class="action-edit" onclick="openRenameModal('task', ${t.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
+                        <button class="action-delete" onclick="deleteTask(${t.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex justify-between items-center p-4 bg-appBg rounded-xl border border-white/5">
+                        <button class="desktop-menu-btn" onclick="showDesktopMenu(event, ${t.id}, 'task')"><i class="fas fa-ellipsis-v"></i></button>
+                        <span class="text-sm font-medium">${t.name}</span>
+                        <span class="text-xs text-textSub font-bold">${t.points}p</span>
+                    </div>
+                </div>
+            `).join('');
+            initSwipeHandlers();
+        }
+
+        function openRenameModal(type, id) {
+            closeAllSwipes();
+            editTarget = {type, id};
+            const item = type === 'member' ? members.find(m => m.id === id) : taskTypes.find(t => t.id === id);
+            
+            document.getElementById('renameModalTitle').innerText = type === 'member' ? 'Endre navn' : 'Endre oppgave';
+            document.getElementById('renameInput').value = item.name;
+            
+            const pointsContainer = document.getElementById('pointsEditContainer');
+            if (type === 'task') {
+                pointsContainer.classList.remove('hidden');
+                document.getElementById('renamePointsInput').value = item.points;
+            } else {
+                pointsContainer.classList.add('hidden');
+            }
+            
+            document.getElementById('renameModal').classList.remove('hidden');
+        }
+
+        function executeRename() {
+            const newName = document.getElementById('renameInput').value;
+            if(!newName) return;
+
+            if (editTarget.type === 'member') {
+                const m = members.find(x => x.id === editTarget.id);
+                if(m) m.name = newName;
+            } else {
+                const t = taskTypes.find(x => x.id === editTarget.id);
+                const newPoints = parseInt(document.getElementById('renamePointsInput').value);
+                if(t) {
+                    t.name = newName;
+                    if(!isNaN(newPoints)) t.points = newPoints;
+                }
+            }
+            sync();
+            closeRenameModal();
+        }
+
+        function showDesktopMenu(e, id, category) {
+            e.preventDefault();
+            const existing = document.querySelector('.desktop-dropdown');
+            if (existing) existing.remove();
+
+            const menu = document.createElement('div');
+            menu.className = 'desktop-dropdown';
+            
+            if (category === 'history') {
+                menu.innerHTML = `<button class="delete-option" onclick="deleteHistory(${id})"><i class="fas fa-trash"></i> Slett bidrag</button>`;
+            } else {
+                menu.innerHTML = `
+                    <button onclick="openRenameModal('${category}', ${id})"><i class="fas fa-pen"></i> Rediger</button>
+                    <button class="delete-option" onclick="${category === 'member' ? 'deleteMember' : 'deleteTask'}(${id})"><i class="fas fa-trash"></i> Slett</button>
+                `;
+            }
+
+            document.body.appendChild(menu);
+            menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+            menu.style.top = Math.min(e.clientY, window.innerHeight - 100) + 'px';
+
+            setTimeout(() => {
+                window.onclick = () => { menu.remove(); window.onclick = null; };
+            }, 0);
+        }
+
+        function initSwipeHandlers() {
+            const items = document.querySelectorAll('.swipe-item, .admin-swipe-item');
+            items.forEach(item => {
+                let startX = 0, currentX = 0, isSwiping = false;
+                const content = item.querySelector('.swipe-content');
+                const actions = item.querySelector('.swipe-actions');
+
+                item.addEventListener('touchstart', e => {
+                    startX = e.touches[0].clientX;
+                    isSwiping = true;
+                    actions.style.visibility = 'visible';
+                }, {passive: true});
+
+                item.addEventListener('touchmove', e => {
+                    if (!isSwiping) return;
+                    currentX = e.touches[0].clientX;
+                    const diff = startX - currentX;
+                    if (diff > 0) content.style.transform = `translateX(-${Math.min(diff, 144)}px)`;
+                }, {passive: true});
+
+                item.addEventListener('touchend', () => {
+                    isSwiping = false;
+                    const diff = startX - currentX;
+                    if (diff > 70) {
+                        const btnCount = actions.querySelectorAll('button').length;
+                        content.style.transform = `translateX(-${btnCount * 72}px)`;
+                    } else {
+                        content.style.transform = 'translateX(0)';
+                    }
+                });
+            });
+        }
+
+        // --- Standard hjelpefunksjoner ---
+        function closeAllSwipes() { document.querySelectorAll('.swipe-content').forEach(c => c.style.transform = 'translateX(0)'); }
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+        function closeAllModals() { document.querySelectorAll('[id$="Modal"]').forEach(m => m.classList.add('hidden')); }
+        function closeRenameModal() { document.getElementById('renameModal').classList.add('hidden'); }
+        function showTaskSelection() { 
+            document.getElementById('taskSelectionScreen').classList.remove('hidden'); 
+            document.getElementById('mainScreen').classList.add('hidden'); 
+            selectedTasksOnScreen = [];
+            renderTaskBubbles(); 
+        }
+        function hideTaskSelection() { 
+            document.getElementById('taskSelectionScreen').classList.add('hidden'); 
+            document.getElementById('mainScreen').classList.remove('hidden'); 
+        }
+        function renderTaskBubbles() {
+            document.getElementById('taskBubbleContainer').innerHTML = taskTypes.map(t => {
+                const sel = selectedTasksOnScreen.includes(t.id);
+                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm transition-all ${sel ? 'bg-taskCyan text-appBg font-bold' : 'bg-cardBg border border-white/5 text-textMain'}">${t.name} (${t.points}p)</button>`;
+            }).join('');
+        }
+        function toggleT(id) {
+            selectedTasksOnScreen = selectedTasksOnScreen.includes(id) ? selectedTasksOnScreen.filter(i => i !== id) : [...selectedTasksOnScreen, id];
+            renderTaskBubbles();
+        }
+        function saveRegisteredTasks() {
+            const uId = parseInt(document.getElementById('userPerforming').value);
+            if(!uId || !selectedTasksOnScreen.length) return alert("Velg navn og oppgaver!");
+            const tasks = selectedTasksOnScreen.map(id => taskTypes.find(t => t.id === id));
+            const totalPoints = tasks.reduce((s, t) => s + t.points, 0);
+            history.unshift({ id: Date.now(), userId: uId, tasks: tasks.map(t => t.name), points: totalPoints, date: new Date().toISOString() });
+            sync(); hideTaskSelection();
+        }
+        function addMember() {
+            const name = document.getElementById('newMemberName').value;
+            if(!name) return;
+            const colors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#7C3AED'];
+            members.push({ id: Date.now(), name, color: colors[members.length % colors.length] });
+            document.getElementById('newMemberName').value = "";
+            sync();
+        }
+        function addTaskType() {
+            const name = document.getElementById('newTaskName').value;
+            const points = parseInt(document.getElementById('newTaskPoints').value);
+            if(!name || isNaN(points)) return;
+            taskTypes.push({ id: Date.now(), name, points });
+            document.getElementById('newTaskName').value = "";
+            document.getElementById('newTaskPoints').value = "";
+            sync();
+        }
+        function deleteMember(id) { members = members.filter(m => m.id !== id); sync(); }
+        function deleteTask(id) { taskTypes = taskTypes.filter(t => t.id !== id); sync(); }
+        function deleteHistory(id) { history = history.filter(h => h.id !== id); sync(); }
+    </script>
+</body>
+</html>
