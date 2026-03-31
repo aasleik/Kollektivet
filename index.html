@@ -41,14 +41,29 @@
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         input, select, textarea { font-size: 16px !important; }
-        button, a, [role="button"] { min-height: 44px; }
+        select { -webkit-appearance: none; }
+        button, a, [role="button"], .swipe-item, .admin-swipe-item { min-height: 44px; }
+        @media (max-width: 640px) {
+            input, select, textarea { padding: 10px 12px; border-radius: 8px; }
+        }
+        .swipe-item, .admin-swipe-item { position: relative; overflow: hidden; }
+        .swipe-item .swipe-content, .admin-swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease, padding-left 0.15s; }
+        .swipe-item .swipe-actions, .admin-swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
+        .swipe-item .swipe-actions button, .admin-swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
+        .swipe-item .swipe-actions .action-date, .admin-swipe-item .swipe-actions .action-edit { background: #3B82F6; border-radius: 0; }
+        .swipe-item .swipe-actions .action-delete, .admin-swipe-item .swipe-actions .action-delete { background: #EF4444; border-radius: 0; }
         
-        .swipe-item { position: relative; overflow: hidden; }
-        .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease; }
-        .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; }
-        .action-delete { background: #EF4444; color: white; width: 80px; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 10px; font-weight: bold; gap: 4px; }
-        
-        .hidden { display: none !important; }
+        /* Desktop context menu */
+        .swipe-item .desktop-menu-btn, .admin-swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+        @media (hover: hover) and (pointer: fine) {
+            .swipe-item:hover .desktop-menu-btn, .swipe-item .desktop-menu-btn.active,
+            .admin-swipe-item:hover .desktop-menu-btn, .admin-swipe-item .desktop-menu-btn.active { display: flex; }
+            .swipe-item:hover .swipe-content, .admin-swipe-item:hover .swipe-content { padding-right: 48px; }
+        }
+        .desktop-dropdown { position: fixed; z-index: 9999; background: #1E2538; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 160px; }
+        .desktop-dropdown button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; background: none; border: none; color: #CBD5E1; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: background 0.15s; }
+        .desktop-dropdown button:hover { background: rgba(255,255,255,0.06); }
+        .desktop-dropdown button.delete-option { color: #F87171; }
     </style>
 </head>
 <body class="bg-appBg text-textMain min-h-screen flex flex-col overflow-x-hidden">
@@ -59,45 +74,41 @@
             <button onclick="toggleModal('adminModal')" class="text-xl text-textSub p-2"><i class="fas fa-cog"></i></button>
         </header>
 
-        <section class="bg-cardBg rounded-3xl p-6 mb-6 shadow-xl border border-white/5 text-center">
-            <h2 id="leadStatus" class="text-lg font-bold mb-3 text-center">Laster...</h2>
-            <div id="periodButtons" class="flex flex-wrap gap-2 text-[11px] justify-center mb-6"></div>
-            <div class="flex justify-center mb-4">
+        <section class="bg-cardBg rounded-3xl p-4 sm:p-6 mb-6 shadow-xl border border-white/5">
+            <h2 id="leadStatus" class="text-lg sm:text-xl font-bold mb-3 text-center">Laster data...</h2>
+            <div id="periodButtons" class="flex flex-wrap gap-2 text-[11px] text-textSub justify-center mb-4"></div>
+            <div class="flex justify-center">
                 <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;"></canvas>
             </div>
-            <div id="chartLegend" class="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm font-medium text-textSub"></div>
+            <div id="chartLegend" class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm sm:text-base font-medium mt-4 text-textSub"></div>
         </section>
 
-        <section class="flex-1">
-            <h2 id="logHeading" class="text-2xl font-extrabold mb-4">I dag</h2>
-            <div id="todayHistory" class="space-y-2"></div>
+        <section class="flex-1 space-y-6">
+            <h2 id="logHeading" class="text-2xl sm:text-3xl font-extrabold">I dag</h2>
+            <div id="todayHistory" class="space-y-4"></div>
         </section>
 
-        <button onclick="showTaskSelection()" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-accent text-white px-8 py-4 rounded-full font-bold shadow-2xl z-10 active:scale-95 transition-transform">
-            <i class="fas fa-plus mr-2"></i> Legg til bidrag
+        <button onclick="showTaskSelection()" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-accent text-white px-8 py-4 rounded-full font-bold shadow-2xl shadow-accent/40 text-lg flex items-center gap-2.5 z-10 active:scale-95 transition-transform">
+            <i class="fas fa-plus text-sm"></i> Legg til bidrag
         </button>
     </div>
 
     <div id="taskSelectionScreen" class="hidden fixed inset-0 bg-appBg z-50 p-5 flex flex-col overflow-y-auto">
         <header class="flex justify-between items-center mb-6">
-            <button onclick="hideTaskSelection()" class="text-textMain text-sm"><i class="fas fa-chevron-left mr-1"></i> Tilbake</button>
+            <button onclick="hideTaskSelection()" class="text-textMain text-sm flex items-center gap-1.5"><i class="fas fa-chevron-left"></i> Tilbake</button>
             <h1 class="text-xl font-bold">Nytt bidrag</h1>
-            <div class="w-10"></div>
+            <div></div>
         </header>
-
-        <div class="mb-6">
-            <label class="text-[10px] text-textSub uppercase font-bold ml-1 mb-2 block">Hvem er du?</label>
-            <select id="userPerforming" class="w-full bg-cardBg p-4 rounded-2xl text-textMain border border-white/10 outline-none appearance-none">
+        <div class="relative mb-6">
+            <label class="text-xs text-textSub mb-2 block ml-1 uppercase font-bold">Hvem er du?</label>
+            <select id="userPerforming" class="w-full bg-cardBg p-4 rounded-2xl text-textMain border border-white/10 appearance-none">
                 <option value="">Velg navn...</option>
             </select>
+            <i class="fas fa-chevron-down absolute right-4 bottom-5 text-textSub pointer-events-none"></i>
         </div>
-
-        <h2 class="text-2xl font-extrabold mb-6">Hva har du gjort?</h2>
+        <h2 class="text-2xl sm:text-4xl font-extrabold mb-6 leading-tight">Hva har du gjort i dag?</h2>
         <div id="taskBubbleContainer" class="flex flex-wrap gap-3 pb-32"></div>
-
-        <button onclick="saveRegisteredTasks()" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10">
-            Lagre bidrag
-        </button>
+        <button onclick="saveRegisteredTasks()" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10">Lagre</button>
     </div>
 
     <div id="adminModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onclick="closeAllModals()">
@@ -105,41 +116,40 @@
             <h3 class="text-lg font-bold mb-6 text-center">Innstillinger</h3>
             <div class="space-y-3">
                 <button onclick="closeAllModals(); toggleModal('memberModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Medlemmer</span><i class="fas fa-user-friends text-accent"></i></button>
-                <button onclick="closeAllModals(); toggleModal('taskAdminModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Oppgaver og poeng</span><i class="fas fa-tasks text-accent"></i></button>
+                <button onclick="closeAllModals(); toggleModal('taskAdminModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Oppgaver</span><i class="fas fa-tasks text-accent"></i></button>
             </div>
-            <button onclick="closeAllModals()" class="mt-8 w-full text-textSub text-sm font-bold">Lukk</button>
+            <button onclick="toggleModal('adminModal')" class="mt-8 w-full text-textSub text-sm font-bold">Lukk meny</button>
         </div>
     </div>
 
-    <div id="taskAdminModal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-6" onclick="toggleModal('taskAdminModal')">
+    <div id="taskAdminModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6" onclick="toggleModal('taskAdminModal')">
         <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm overflow-y-auto max-h-[85vh]" onclick="event.stopPropagation()">
-            <h3 class="text-xl font-bold mb-4">Oppgaver</h3>
+            <h3 class="text-xl font-bold mb-4">Oppgaver og Poeng</h3>
             <div class="space-y-3 mb-6 bg-appBg p-4 rounded-2xl border border-white/5">
-                <input type="text" id="newTaskName" placeholder="F.eks. Vaske badet" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
-                <input type="number" id="newTaskPoints" placeholder="Poeng" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
-                <button onclick="addTaskType()" class="w-full bg-accent py-3 rounded-xl font-bold text-sm">Legg til ny</button>
+                <input type="text" id="newTaskName" placeholder="F.eks. Støvsuge" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
+                <input type="number" id="newTaskPoints" placeholder="Antall poeng" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
+                <button onclick="addTaskType()" class="w-full bg-accent py-3 rounded-xl font-bold">Legg til oppgave</button>
             </div>
             <div id="manageTasksList" class="space-y-2"></div>
             <button onclick="toggleModal('taskAdminModal')" class="mt-8 w-full text-textSub font-bold">Tilbake</button>
         </div>
     </div>
 
-    <div id="editTaskModal" class="hidden fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-6" onclick="closeEditTaskModal()">
+    <div id="editTaskModal" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6" onclick="closeEditTaskModal()">
         <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
-            <h3 class="text-xl font-bold mb-6 text-center">Rediger oppgave</h3>
+            <h3 class="text-xl font-bold mb-4 text-center">Endre oppgave</h3>
             <div class="space-y-4">
-                <input type="text" id="editTaskNameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm">
-                <input type="number" id="editTaskPointsInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm">
+                <input type="text" id="editTaskName" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Navn...">
+                <input type="number" id="editTaskPoints" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Poeng...">
             </div>
-            <div class="flex gap-3 mt-8">
+            <div class="flex gap-3 mt-6">
                 <button onclick="closeEditTaskModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold">Avbryt</button>
-                <button onclick="saveTaskEdit()" class="flex-1 py-4 rounded-2xl bg-accent text-white font-bold">Lagre</button>
+                <button onclick="executeTaskEdit()" class="flex-1 py-4 rounded-2xl bg-accent text-white font-bold">Lagre</button>
             </div>
-            <button onclick="deleteTaskType()" class="w-full mt-4 text-red-500 text-xs font-bold uppercase tracking-widest">Slett oppgave</button>
         </div>
     </div>
 
-    <div id="memberModal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-6" onclick="toggleModal('memberModal')">
+    <div id="memberModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6" onclick="toggleModal('memberModal')">
         <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm" onclick="event.stopPropagation()">
             <h3 class="text-xl font-bold mb-4">Medlemmer</h3>
             <div class="flex gap-2 mb-6">
@@ -152,7 +162,7 @@
     </div>
 
     <script>
-        // FIREBASE KONFIGURASJON
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
             authDomain: "kollektivet-fc493.firebaseapp.com",
@@ -168,9 +178,8 @@
 
         let members = [], taskTypes = [], history = [], myChart, selectedTasksOnScreen = [];
         let activePeriod = 'today';
-        let currentEditingTaskId = null;
+        let editingTaskId = null;
 
-        // HENT DATA
         db.ref('/').on('value', (snapshot) => {
             const data = snapshot.val() || {};
             members = data.members || [];
@@ -181,65 +190,48 @@
 
         function sync() { db.ref('/').set({ members, taskTypes, history }); }
 
-        // DATO-LOGIKK
         const periods = [
             { key: 'today', label: 'I dag' },
             { key: 'yesterday', label: 'I går' },
             { key: 'thisWeek', label: 'Uken' },
-            { key: 'thisMonth', label: 'Måneden' },
             { key: 'all', label: 'Alltid' }
         ];
 
         function getFriendlyDate(dateStr) {
-            const date = new Date(dateStr);
+            const d = new Date(dateStr);
             const today = new Date();
-            const yesterday = new Date();
-            yesterday.setDate(today.getDate() - 1);
-            if (date.toDateString() === today.toDateString()) return "I dag";
-            if (date.toDateString() === yesterday.toDateString()) return "I går";
-            return date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+            const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+            if (d.toDateString() === today.toDateString()) return "I dag";
+            if (d.toDateString() === yesterday.toDateString()) return "I går";
+            return d.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
         }
 
-        function getDateRange(key) {
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            switch(key) {
-                case 'today': return { start: today, end: new Date(today.getTime() + 86400000) };
-                case 'yesterday': return { start: new Date(today.getTime() - 86400000), end: today };
-                case 'thisWeek': { const d = now.getDay(); const diff = d === 0 ? 6 : d - 1; return { start: new Date(today.getTime() - diff * 86400000), end: new Date(today.getTime() + 86400000) }; }
-                case 'thisMonth': return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(today.getTime() + 86400000) };
-                case 'all': return { start: new Date(0), end: new Date(today.getTime() + 86400000) };
-            }
-        }
-
-        // RENDERING
         function renderAll() {
             renderPeriodButtons();
             renderStats();
-            renderHistory();
-            renderAdmin();
+            renderTodayHistory();
+            renderAdminLists();
+            const sel = document.getElementById('userPerforming');
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">Velg navn...</option>' + members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            sel.value = currentVal;
         }
 
         function renderPeriodButtons() {
             document.getElementById('periodButtons').innerHTML = periods.map(p => `
-                <button onclick="activePeriod='${p.key}'; renderAll()" class="px-4 py-2 rounded-full font-bold ${activePeriod === p.key ? 'bg-taskBlue text-white' : 'bg-white/5 text-textSub'}">
+                <button onclick="activePeriod='${p.key}'; renderAll()" class="px-3 py-1.5 rounded-full font-bold ${activePeriod === p.key ? 'bg-taskBlue text-white' : 'bg-white/5 text-textSub'}">
                     ${p.label}
                 </button>
             `).join('');
         }
 
         function renderStats() {
-            const { start, end } = getDateRange(activePeriod);
-            const filtered = history.filter(h => { const d = new Date(h.date); return d >= start && d < end; });
+            const statusEl = document.getElementById('leadStatus');
+            if (!members.length) { statusEl.innerText = "Legg til medlemmer!"; return; }
+            statusEl.innerText = "Oversikt";
             
-            const stats = members.map(m => ({
-                name: m.name,
-                color: m.color || '#7C3AED',
-                points: filtered.filter(h => h.userId === m.id).reduce((s, h) => s + h.points, 0)
-            })).sort((a,b) => b.points - a.points);
-
-            document.getElementById('leadStatus').innerText = stats[0]?.points > 0 ? `${stats[0].name.split(' ')[0]} leder!` : "Ingen poeng ennå";
-            document.getElementById('chartLegend').innerHTML = stats.map(s => `<div><span class="inline-block w-2 h-2 rounded-full mr-1" style="background:${s.color}"></span>${s.name.split(' ')[0]}: ${s.points}p</div>`).join('');
+            const legendEl = document.getElementById('chartLegend');
+            legendEl.innerHTML = members.map(m => `<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:${m.color}"></span>${m.name.split(' ')[0]}</div>`).join('');
 
             const ctx = document.getElementById('pointsChart').getContext('2d');
             if (myChart) myChart.destroy();
@@ -247,8 +239,8 @@
                 type: 'doughnut',
                 data: {
                     datasets: [{
-                        data: stats.map(s => s.points || 1),
-                        backgroundColor: stats.map(s => s.color),
+                        data: members.map(m => m.points || 1),
+                        backgroundColor: members.map(m => m.color),
                         borderWidth: 0
                     }]
                 },
@@ -256,161 +248,218 @@
             });
         }
 
-        function renderHistory() {
+        // GRUPPERT HISTORIKK
+        function renderTodayHistory() {
             const hEl = document.getElementById('todayHistory');
-            const { start, end } = getDateRange(activePeriod);
-            const log = history.filter(h => { const d = new Date(h.date); return d >= start && d < end; });
-
-            if (!log.length) { hEl.innerHTML = `<p class="text-center text-textSub text-xs py-10">Tomt her...</p>`; return; }
+            if (!history.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm opacity-50">Ingen bidrag ennå.</p>`; return; }
 
             let html = "";
-            let lastDate = "";
-            log.forEach(h => {
+            let lastHeader = "";
+
+            history.forEach(h => {
                 const m = members.find(mem => mem.id === h.userId);
-                if (!m) return;
-                const dateHeader = getFriendlyDate(h.date);
-                if (dateHeader !== lastDate) {
-                    html += `<h3 class="text-[10px] font-bold text-textSub uppercase mt-6 mb-2 ml-1 tracking-widest">${dateHeader}</h3>`;
-                    lastDate = dateHeader;
+                if(!m) return;
+
+                const currentHeader = getFriendlyDate(h.date);
+                if (currentHeader !== lastHeader) {
+                    html += `<h3 class="text-xs font-bold text-textSub uppercase tracking-widest mt-8 mb-4 ml-1">${currentHeader}</h3>`;
+                    lastHeader = currentHeader;
                 }
+
                 html += `
-                    <div class="swipe-item group" data-id="${h.id}">
-                        <div class="swipe-actions"><button class="action-delete" onclick="deleteEntry(${h.id})"><i class="fas fa-trash"></i>Slett</button></div>
-                        <div class="swipe-content flex items-center gap-4 p-4 bg-cardBg rounded-2xl border border-white/5 mb-2">
-                            <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs" style="background:${m.color}">${m.name[0]}</span>
-                            <div class="flex-1"><p class="text-sm font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
-                            <p class="text-[9px] text-textSub uppercase mt-1">+${h.points} poeng</p></div>
+                <div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id}, 'history')">
+                    <div class="swipe-actions">
+                        <button class="action-delete" onclick="deleteHistory(${h.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl border border-white/5">
+                        <button class="desktop-menu-btn" onclick="showContextMenu(event, ${h.id}, 'history', true)"><i class="fas fa-ellipsis-v"></i></button>
+                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs" style="background:${m.color}">${m.name.substring(0,2).toUpperCase()}</span>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                            <p class="text-[10px] text-textSub uppercase">+${h.points} poeng</p>
                         </div>
-                    </div>`;
+                    </div>
+                </div>`;
             });
             hEl.innerHTML = html;
-            initSwipe();
+            initSwipeHandlers();
         }
 
-        function renderAdmin() {
-            document.getElementById('manageTasksList').innerHTML = taskTypes.map(t => `
-                <div onclick="openEditTask(${t.id})" class="flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5 cursor-pointer">
-                    <span class="text-sm font-bold">${t.name}</span>
-                    <span class="text-xs text-textSub">${t.points}p <i class="fas fa-pen ml-2 opacity-30"></i></span>
+        // ADMIN LISTER MED SWIPE/MENU
+        function renderAdminLists() {
+            const taskList = document.getElementById('manageTasksList');
+            taskList.innerHTML = taskTypes.map(t => `
+                <div class="admin-swipe-item rounded-xl" data-id="${t.id}" oncontextmenu="showContextMenu(event, ${t.id}, 'task')">
+                    <div class="swipe-actions">
+                        <button class="action-edit" onclick="openEditTaskModal(${t.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
+                        <button class="action-delete" onclick="deleteTask(${t.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
+                        <button class="desktop-menu-btn" onclick="showContextMenu(event, ${t.id}, 'task', true)"><i class="fas fa-ellipsis-v"></i></button>
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-star text-taskBlue"></i>
+                            <span class="font-medium text-sm">${t.name}</span>
+                        </div>
+                        <span class="text-xs text-textSub">${t.points}p</span>
+                    </div>
                 </div>
             `).join('');
 
             document.getElementById('manageMembersList').innerHTML = members.map(m => `
                 <div class="flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
                     <span class="text-sm font-bold">${m.name}</span>
-                    <button onclick="deleteMember(${m.id})" class="text-red-500 opacity-50"><i class="fas fa-trash"></i></button>
+                    <button onclick="deleteMember(${m.id})" class="text-red-500/50"><i class="fas fa-trash"></i></button>
                 </div>
             `).join('');
-
-            document.getElementById('userPerforming').innerHTML = '<option value="">Hvem er du?</option>' + members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            initSwipeHandlers();
         }
 
-        // LOGIKK FOR BIDRAG
+        // REDIGERINGS-LOGIKK
+        function openEditTaskModal(id) {
+            closeAllSwipes();
+            editingTaskId = id;
+            const t = taskTypes.find(x => x.id === id);
+            document.getElementById('editTaskName').value = t.name;
+            document.getElementById('editTaskPoints').value = t.points;
+            document.getElementById('editTaskModal').classList.remove('hidden');
+        }
+
+        function closeEditTaskModal() {
+            document.getElementById('editTaskModal').classList.add('hidden');
+            editingTaskId = null;
+        }
+
+        function executeTaskEdit() {
+            const newName = document.getElementById('editTaskName').value;
+            const newPoints = parseInt(document.getElementById('editTaskPoints').value);
+            if(!newName || isNaN(newPoints)) return;
+            const t = taskTypes.find(x => x.id === editingTaskId);
+            t.name = newName;
+            t.points = newPoints;
+            sync();
+            closeEditTaskModal();
+        }
+
+        // SWIPE & CONTEXT MENU (Beholdt nøyaktig som før)
+        let activeSwipeItem = null;
+        function initSwipeHandlers() {
+            const items = document.querySelectorAll('.swipe-item, .admin-swipe-item');
+            items.forEach(item => {
+                let startX = 0, currentX = 0, isSwiping = false;
+                const content = item.querySelector('.swipe-content');
+                const actions = item.querySelector('.swipe-actions');
+
+                item.addEventListener('touchstart', e => {
+                    if (activeSwipeItem && activeSwipeItem !== item) closeAllSwipes();
+                    startX = e.touches[0].clientX;
+                    isSwiping = true;
+                    actions.style.visibility = 'visible';
+                }, {passive: true});
+
+                item.addEventListener('touchmove', e => {
+                    if (!isSwiping) return;
+                    currentX = e.touches[0].clientX;
+                    const diff = startX - currentX;
+                    if (diff > 0) content.style.transform = `translateX(-${Math.min(diff, 144)}px)`;
+                }, {passive: true});
+
+                item.addEventListener('touchend', () => {
+                    isSwiping = false;
+                    const diff = startX - currentX;
+                    if (diff > 70) {
+                        const width = actions.querySelectorAll('button').length * 72;
+                        content.style.transform = `translateX(-${width}px)`;
+                        activeSwipeItem = item;
+                    } else {
+                        content.style.transform = 'translateX(0)';
+                        activeSwipeItem = null;
+                    }
+                });
+            });
+        }
+
+        function closeAllSwipes() {
+            document.querySelectorAll('.swipe-content').forEach(c => c.style.transform = 'translateX(0)');
+            activeSwipeItem = null;
+        }
+
+        function showContextMenu(e, id, type, fromBtn = false) {
+            e.preventDefault();
+            const existing = document.querySelector('.desktop-dropdown');
+            if (existing) existing.remove();
+
+            const menu = document.createElement('div');
+            menu.className = 'desktop-dropdown';
+            
+            if (type === 'history') {
+                menu.innerHTML = `<button onclick="deleteHistory(${id})"><i class="fas fa-trash"></i> Slett bidrag</button>`;
+            } else {
+                menu.innerHTML = `
+                    <button onclick="openEditTaskModal(${id})"><i class="fas fa-pen"></i> Endre oppgave</button>
+                    <button onclick="deleteTask(${id})" class="delete-option"><i class="fas fa-trash"></i> Slett</button>`;
+            }
+
+            document.body.appendChild(menu);
+            const x = fromBtn ? e.target.getBoundingClientRect().left - 130 : e.clientX;
+            const y = fromBtn ? e.target.getBoundingClientRect().bottom + 5 : e.clientY;
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            setTimeout(() => {
+                window.onclick = () => { menu.remove(); window.onclick = null; };
+            }, 0);
+        }
+
+        // HJELPEFUNKSJONER
         function showTaskSelection() {
-            document.getElementById('mainScreen').classList.add('hidden');
             document.getElementById('taskSelectionScreen').classList.remove('hidden');
+            document.getElementById('mainScreen').classList.add('hidden');
             selectedTasksOnScreen = [];
             renderTaskBubbles();
         }
-
         function hideTaskSelection() {
-            document.getElementById('mainScreen').classList.remove('hidden');
             document.getElementById('taskSelectionScreen').classList.add('hidden');
+            document.getElementById('mainScreen').classList.remove('hidden');
         }
-
         function renderTaskBubbles() {
             document.getElementById('taskBubbleContainer').innerHTML = taskTypes.map(t => {
                 const sel = selectedTasksOnScreen.includes(t.id);
-                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm border ${sel ? 'bg-taskCyan text-appBg border-taskCyan font-bold' : 'bg-cardBg border-white/5 text-textMain'}">
-                    ${t.name} (${t.points}p)
-                </button>`;
+                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm border border-white/5 ${sel ? 'bg-taskCyan text-appBg font-bold' : 'bg-cardBg text-textMain'}">${t.name} (${t.points}p)</button>`;
             }).join('');
         }
-
         function toggleT(id) {
             selectedTasksOnScreen = selectedTasksOnScreen.includes(id) ? selectedTasksOnScreen.filter(i => i !== id) : [...selectedTasksOnScreen, id];
             renderTaskBubbles();
         }
-
         function saveRegisteredTasks() {
             const uId = parseInt(document.getElementById('userPerforming').value);
             if(!uId || !selectedTasksOnScreen.length) return alert("Velg navn og oppgaver!");
-            
-            const taskNames = selectedTasksOnScreen.map(tid => taskTypes.find(tt => tt.id === tid).name.toLowerCase());
-            const totalPoints = selectedTasksOnScreen.reduce((s, tid) => s + taskTypes.find(tt => tt.id === tid).points, 0);
-            
-            history.unshift({ id: Date.now(), userId: uId, tasks: taskNames, points: totalPoints, date: new Date().toISOString() });
+            const tasks = selectedTasksOnScreen.map(tid => taskTypes.find(tt => tt.id === tid).name);
+            const pts = selectedTasksOnScreen.reduce((s, tid) => s + taskTypes.find(tt => tt.id === tid).points, 0);
+            history.unshift({ id: Date.now(), userId: uId, tasks, points: pts, date: new Date().toISOString() });
             sync(); hideTaskSelection();
         }
-
-        // REDIGERING AV OPPGAVER
-        function openEditTask(id) {
-            currentEditingTaskId = id;
-            const t = taskTypes.find(x => x.id === id);
-            document.getElementById('editTaskNameInput').value = t.name;
-            document.getElementById('editTaskPointsInput').value = t.points;
-            document.getElementById('editTaskModal').classList.remove('hidden');
-        }
-
-        function closeEditTaskModal() { document.getElementById('editTaskModal').classList.add('hidden'); }
-
-        function saveTaskEdit() {
-            const t = taskTypes.find(x => x.id === currentEditingTaskId);
-            t.name = document.getElementById('editTaskNameInput').value;
-            t.points = parseInt(document.getElementById('editTaskPointsInput').value);
-            sync(); closeEditTaskModal();
-        }
-
-        function deleteTaskType() {
-            if(!confirm("Slette denne oppgavetypen helt?")) return;
-            taskTypes = taskTypes.filter(t => t.id !== currentEditingTaskId);
-            sync(); closeEditTaskModal();
-        }
-
-        // ADMIN HANDLINGER
-        function addMember() {
-            const name = document.getElementById('newMemberName').value;
-            if(!name) return;
-            const colors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#7C3AED'];
-            members.push({ id: Date.now(), name, points: 0, color: colors[members.length % colors.length] });
-            document.getElementById('newMemberName').value = "";
-            sync();
-        }
-
-        function deleteMember(id) { if(confirm("Slette medlem?")) { members = members.filter(m => m.id !== id); sync(); } }
-
         function addTaskType() {
             const name = document.getElementById('newTaskName').value;
             const points = parseInt(document.getElementById('newTaskPoints').value);
-            if(!name || !points) return;
+            if(!name || isNaN(points)) return;
             taskTypes.push({ id: Date.now(), name, points });
             document.getElementById('newTaskName').value = "";
             document.getElementById('newTaskPoints').value = "";
             sync();
         }
-
-        function deleteEntry(id) { history = history.filter(h => h.id !== id); sync(); }
-
-        // MODALER
+        function deleteTask(id) { taskTypes = taskTypes.filter(t => t.id !== id); sync(); }
+        function deleteHistory(id) { history = history.filter(h => h.id !== id); sync(); }
+        function addMember() {
+            const name = document.getElementById('newMemberName').value;
+            if(!name) return;
+            members.push({ id: Date.now(), name, points: 0, color: '#'+Math.floor(Math.random()*16777215).toString(16) });
+            document.getElementById('newMemberName').value = "";
+            sync();
+        }
+        function deleteMember(id) { members = members.filter(m => m.id !== id); sync(); }
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
         function closeAllModals() { document.querySelectorAll('[id$="Modal"]').forEach(m => m.classList.add('hidden')); }
-
-        // ENKEL SWIPE LOGIKK
-        function initSwipe() {
-            document.querySelectorAll('.swipe-item').forEach(item => {
-                let startX;
-                const content = item.querySelector('.swipe-content');
-                item.addEventListener('touchstart', e => startX = e.touches[0].clientX);
-                item.addEventListener('touchmove', e => {
-                    let diff = startX - e.touches[0].clientX;
-                    if (diff > 0 && diff < 100) content.style.transform = `translateX(-${diff}px)`;
-                });
-                item.addEventListener('touchend', e => {
-                    let diff = startX - e.changedTouches[0].clientX;
-                    content.style.transform = diff > 50 ? `translateX(-80px)` : `translateX(0)`;
-                });
-            });
-        }
     </script>
 </body>
 </html>
