@@ -109,7 +109,7 @@
             <div id="periodButtons" class="flex flex-wrap gap-2 text-[11px] text-textSub justify-center mb-4">
             </div>
             <div class="flex justify-center">
-                <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;"></canvas>
+                <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;" onclick="playIntroSound(7)"></canvas>
             </div>
             <div id="chartLegend" class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm sm:text-base font-medium mt-4 text-textSub"></div>
         </section>
@@ -244,6 +244,47 @@
     </div>
 
     <script>
+        // --- LYD LOGIKK START ---
+        let globalAudio = new Audio('https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3');
+        let isPlaying = false;
+
+        function playIntroSound(durationSeconds = 7) {
+            if (isPlaying) return;
+            
+            globalAudio.play().then(() => {
+                isPlaying = true;
+                globalAudio.currentTime = 0;
+                globalAudio.volume = 0;
+
+                // Fade inn
+                let fadeIn = setInterval(() => {
+                    if (globalAudio.volume < 0.25) {
+                        globalAudio.volume = Math.min(0.3, globalAudio.volume + 0.05);
+                    } else {
+                        clearInterval(fadeIn);
+                    }
+                }, 100);
+
+                // Planlegg stopp og fade ut
+                setTimeout(() => {
+                    let fadeOut = setInterval(() => {
+                        if (globalAudio.volume > 0.05) {
+                            globalAudio.volume -= 0.05;
+                        } else {
+                            clearInterval(fadeOut);
+                            globalAudio.pause();
+                            isPlaying = false;
+                        }
+                    }, 100);
+                }, durationSeconds * 1000);
+
+            }).catch(e => {
+                console.log("Mobil blokkerte lyden:", e);
+                isPlaying = false;
+            });
+        }
+        // --- LYD LOGIKK SLUTT ---
+
         const firebaseConfig = {
             apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
             authDomain: "kollektivet-fc493.firebaseapp.com",
@@ -257,6 +298,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // ... resten av den originale koden fra index (15) fortsetter her ...
         const defaultTaskTypes = [
             { id: 1, name: "Redd sengen", points: 10, icon: 'bed' },
             { id: 2, name: "Laget kaffe", points: 5, icon: 'mug-hot' },
@@ -267,60 +309,6 @@
 
         let members = [], taskTypes = [], history = [], myChart, selectedTasksOnScreen = [];
         let activePeriod = 'today';
-        
-        // LYD-FUNKSJON TILPASSET MOBIL
-        // Flytt denne ut av funksjonen så vi gjenbruker samme objekt
-// Disse må ligge utenfor funksjonen
-let globalAudio = null;
-let isPlaying = false; 
-
-function playIntroSound(durationSeconds = 7) {
-    // SPERRE: Hvis den allerede spiller, avslutt funksjonen her
-    if (isPlaying) return;
-    
-    const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3';
-    
-    if (!globalAudio) {
-        globalAudio = new Audio(audioUrl);
-    }
-
-    // Nå markerer vi at vi har startet
-    isPlaying = true;
-    globalAudio.currentTime = 0;
-    globalAudio.volume = 0;
-
-    globalAudio.play().then(() => {
-        // Fade inn
-        let fadeIn = setInterval(() => {
-            if (globalAudio.volume < 0.3) {
-                globalAudio.volume = Math.min(0.9, globalAudio.volume + 0.05);
-            } else {
-                clearInterval(fadeIn);
-            }
-        }, 100);
-
-        // Fade ut etter gitt tid
-        setTimeout(() => {
-            let fadeOut = setInterval(() => {
-                if (globalAudio && globalAudio.volume > 0.05) {
-                    globalAudio.volume = Math.max(0, globalAudio.volume - 0.05);
-                } else {
-                    clearInterval(fadeOut);
-                    if (globalAudio) {
-                        globalAudio.pause();
-                        globalAudio.currentTime = 0;
-                    }
-                    // VIKTIG: Åpne sperren igjen når lyden er helt ferdig
-                    isPlaying = false; 
-                }
-            }, 100);
-        }, durationSeconds * 1000);
-        
-    }).catch(e => {
-        console.error("Lyd blokkert:", e);
-        isPlaying = false; // Nullstill hvis det skjer en feil
-    });
-}
 
         db.ref('/').on('value', (snapshot) => {
             const raw = snapshot.val();
@@ -435,14 +423,7 @@ function playIntroSound(durationSeconds = 7) {
                         hoverOffset: 0
                     }]
                 },
-                options: { 
-                    cutout: '80%', 
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } }, 
-                    animation: { duration: 500 },
-                    onClick: () => {
-                        playIntroSound(7);
-                    }
-                }
+                options: { cutout: '80%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 500 } }
             });
         }
 
@@ -482,19 +463,19 @@ function playIntroSound(durationSeconds = 7) {
                     const taskCount = h.tasks.length;
                     const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
                     return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
-                    <div class="swipe-actions">
-                        <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
-                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
-                    </div>
-                    <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
-                        <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
-                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm leading-tight font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
-                            <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel}</p>
-                        </div>
-                    </div>
-                    </div>`;
+                                <div class="swipe-actions">
+                                    <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
+                                    <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                                </div>
+                                <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
+                                    <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
+                                    <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm leading-tight font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                                        <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel}</p>
+                                    </div>
+                                </div>
+                            </div>`;
                 }).join('');
                 if (!itemsHtml.trim()) return '';
                 return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
@@ -518,360 +499,320 @@ function playIntroSound(durationSeconds = 7) {
         function renderTaskBubbles() {
             document.getElementById('taskBubbleContainer').innerHTML = taskTypes.map(t => {
                 const sel = selectedTasksOnScreen.includes(t.id);
-                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm transition-all flex items-center gap-3 ${sel ? 'bg-taskCyan text-appBg font-bold scale-95 shadow-lg' : 'bg-cardBg border border-white/5 text-textMain'}">
-                ${sel ? '<i class="fas fa-check-circle text-appBg"></i>' : `<i class="fas fa-${t.icon || 'star'} text-taskBlue"></i>`}
-                <span>${t.name}</span>
-                <span class="text-[10px] ${sel ? 'text-appBg/60' : 'text-textSub'}">${t.points}p</span>
-                </button>`;
+                return `<button onclick="toggleT(${t.id})" class="px-5 py-3 rounded-2xl font-bold transition-all border-2 ${sel ? 'bg-accent border-accent text-white scale-105 shadow-lg shadow-accent/30' : 'bg-cardBg border-white/5 text-textSub hover:border-white/20'}">${t.name} <span class="opacity-60 text-xs ml-1">${t.points}p</span></button>`;
             }).join('');
         }
 
-        function toggleT(id) {
-            selectedTasksOnScreen = selectedTasksOnScreen.includes(id) ? selectedTasksOnScreen.filter(i => i !== id) : [...selectedTasksOnScreen, id];
+        function toggleT(tid) {
+            const idx = selectedTasksOnScreen.indexOf(tid);
+            if (idx > -1) selectedTasksOnScreen.splice(idx, 1);
+            else selectedTasksOnScreen.push(tid);
             renderTaskBubbles();
         }
 
         function saveRegisteredTasks() {
-            const uIdInput = document.getElementById('userPerforming').value;
-            if(!uIdInput) return alert("Hvem er du? Velg navn øverst.");
-            const uId = isNaN(uIdInput) ? uIdInput : parseInt(uIdInput);
-            if(!selectedTasksOnScreen.length) return alert("Velg minst én ting du har gjort!");
-            
-            const selected = taskTypes.filter(t => selectedTasksOnScreen.includes(t.id));
-            const totalP = selected.reduce((sum, t) => sum + t.points, 0);
-            const taskNames = selected.map(t => t.name);
-
-            history.push({
-                id: Date.now(),
-                userId: uId,
-                tasks: taskNames,
-                points: totalP,
-                date: new Date().toISOString()
-            });
-
+            const userId = document.getElementById('userPerforming').value;
+            if (!userId) { alert("Hvem er du?"); return; }
+            if (selectedTasksOnScreen.length === 0) { alert("Velg minst én oppgave."); return; }
+            const selectedTypes = taskTypes.filter(t => selectedTasksOnScreen.includes(t.id));
+            const total = selectedTypes.reduce((s, t) => s + t.points, 0);
+            history.push({ id: Date.now(), userId, tasks: selectedTypes.map(t => t.name), points: total, date: new Date().toISOString() });
             sync();
             hideTaskSelection();
         }
 
-        function toggleModal(id) {
-            const el = document.getElementById(id);
-            el.classList.toggle('hidden');
+        function undo(id) {
+            const idx = history.findIndex(h => h.id === id);
+            if (idx > -1) { history.splice(idx, 1); sync(); }
         }
 
-        function closeAllModals() {
-            ['adminModal', 'memberModal', 'taskAdminModal', 'confirmModal', 'renameModal'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-        }
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+        function closeAllModals() { ['adminModal', 'memberModal', 'taskAdminModal', 'confirmModal', 'renameModal'].forEach(id => document.getElementById(id).classList.add('hidden')); }
 
         function addMember() {
-            const name = document.getElementById('newMemberName').value.trim();
-            if (!name) return;
-            const id = Date.now();
-            const color = allColors[members.length % allColors.length];
-            members.push({ id, name, color });
-            document.getElementById('newMemberName').value = '';
-            sync();
+            const input = document.getElementById('newMemberName');
+            const name = input.value.trim();
+            if (name) {
+                const used = new Set(members.map(m => m.color));
+                const available = allColors.filter(c => !used.has(c));
+                members.push({ id: Date.now(), name, color: available[0] || allColors[0] });
+                input.value = '';
+                sync();
+            }
         }
 
         function addTaskType() {
-            const name = document.getElementById('newTaskName').value.trim();
-            const points = parseInt(document.getElementById('newTaskPoints').value);
-            if (!name || isNaN(points)) return;
-            taskTypes.push({ id: Date.now(), name, points, icon: 'star' });
-            document.getElementById('newTaskName').value = '';
-            document.getElementById('newTaskPoints').value = '';
-            sync();
+            const nameI = document.getElementById('newTaskName');
+            const pointsI = document.getElementById('newTaskPoints');
+            const name = nameI.value.trim();
+            const points = parseInt(pointsI.value);
+            if (name && !isNaN(points)) {
+                taskTypes.push({ id: Date.now(), name, points });
+                nameI.value = ''; pointsI.value = '';
+                sync();
+            }
         }
 
         function renderAdminLists() {
-            const mList = document.getElementById('manageMembersList');
-            mList.innerHTML = members.map(m => `<div class="admin-swipe-item" data-id="${m.id}" oncontextmenu="showMemberContextMenu(event, ${m.id})"><div class="swipe-actions"><button class="action-edit" onclick="openRenameMember(${m.id})"><i class="fas fa-pen"></i></button><button class="action-delete" onclick="confirmDeleteMember(${m.id})"><i class="fas fa-trash"></i></button></div><div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5 mb-1"><div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full" style="background:${m.color}"></span><span class="font-medium">${m.name}</span></div><button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleMemberDesktopMenu(${m.id}, this)"><i class="fas fa-ellipsis-v"></i></button></div></div>`).join('');
-
-            const tList = document.getElementById('manageTasksList');
-            tList.innerHTML = taskTypes.map(t => `<div class="admin-swipe-item" data-id="${t.id}" oncontextmenu="showTaskContextMenu(event, ${t.id})"><div class="swipe-actions"><button class="action-edit" onclick="openRenameTask(${t.id})"><i class="fas fa-pen"></i></button><button class="action-delete" onclick="confirmDeleteTask(${t.id})"><i class="fas fa-trash"></i></button></div><div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5 mb-1"><div class="flex-1"><div><span class="font-medium">${t.name}</span> <span class="text-textSub text-xs ml-2">${t.points}p</span></div></div><button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleTaskDesktopMenu(${t.id}, this)"><i class="fas fa-ellipsis-v"></i></button></div></div>`).join('');
+            document.getElementById('manageMembersList').innerHTML = members.map(m => `<div class="admin-swipe-item" data-id="${m.id}">
+                        <div class="swipe-actions">
+                            <button class="action-edit" onclick="openRenameModal('member', ${m.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
+                            <button class="action-delete" onclick="confirmDelete('member', ${m.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                        </div>
+                        <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
+                            <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${m.id}, this, 'member')"><i class="fas fa-ellipsis-v"></i></button>
+                            <div class="flex items-center gap-3">
+                                <span class="w-3 h-3 rounded-full" style="background:${m.color}"></span>
+                                <span class="font-medium">${m.name}</span>
+                            </div>
+                        </div>
+                    </div>`).join('');
+            document.getElementById('manageTasksList').innerHTML = taskTypes.map(t => `<div class="admin-swipe-item" data-id="${t.id}">
+                        <div class="swipe-actions">
+                            <button class="action-edit" onclick="openRenameModal('task', ${t.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
+                            <button class="action-delete" onclick="confirmDelete('task', ${t.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                        </div>
+                        <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
+                            <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${t.id}, this, 'task')"><i class="fas fa-ellipsis-v"></i></button>
+                            <div class="flex-1">
+                                <p class="font-medium leading-tight">${t.name}</p>
+                                <p class="text-[10px] text-textSub uppercase font-bold mt-0.5">${t.points} poeng</p>
+                            </div>
+                        </div>
+                    </div>`).join('');
             initSwipeHandlers();
         }
 
-        function confirmDeleteMember(id) {
-            const m = members.find(mem => mem.id === id);
-            showConfirm(`Vil du slette ${m.name}? All historikk vil bli stående, men uten navn.`, () => {
-                members = members.filter(mem => mem.id !== id);
+        let confirmAction = null;
+        function confirmDelete(type, id) {
+            const modal = document.getElementById('confirmModal');
+            const msg = document.getElementById('confirmMessage');
+            confirmAction = () => {
+                if (type === 'member') { members = members.filter(m => m.id !== id); history = history.filter(h => String(h.userId) !== String(id)); }
+                else if (type === 'task') { taskTypes = taskTypes.filter(t => t.id !== id); }
                 sync();
                 closeConfirm();
-            });
+            };
+            msg.innerText = type === 'member' ? "Sletter du medlemmet, slettes også all deres historikk." : "Denne oppgaven vil bli fjernet fra listen.";
+            modal.classList.remove('hidden');
+            document.getElementById('confirmExecuteBtn').onclick = confirmAction;
         }
-
-        function confirmDeleteTask(id) {
-            const t = taskTypes.find(task => task.id === id);
-            showConfirm(`Vil du slette oppgaven "${t.name}"?`, () => {
-                taskTypes = taskTypes.filter(task => task.id !== id);
-                sync();
-                closeConfirm();
-            });
-        }
-
-        function showConfirm(msg, onConfirm) {
-            document.getElementById('confirmMessage').innerText = msg;
-            const btn = document.getElementById('confirmExecuteBtn');
-            btn.onclick = onConfirm;
-            document.getElementById('confirmModal').classList.remove('hidden');
-        }
-
         function closeConfirm() { document.getElementById('confirmModal').classList.add('hidden'); }
 
         let renameContext = null;
-        function openRenameMember(id) {
-            const m = members.find(mem => mem.id === id);
-            renameContext = { type: 'member', id };
-            document.getElementById('renameModalTitle').innerText = "Endre navn";
-            document.getElementById('renameInput').value = m.name;
-            document.getElementById('renamePointsRow').classList.add('hidden');
-            document.getElementById('renameModal').classList.remove('hidden');
-        }
-
-        function openRenameTask(id) {
-            const t = taskTypes.find(task => task.id === id);
-            renameContext = { type: 'task', id };
-            document.getElementById('renameModalTitle').innerText = "Endre oppgave";
-            document.getElementById('renameInput').value = t.name;
-            document.getElementById('renamePointsInput').value = t.points;
-            document.getElementById('renamePointsRow').classList.remove('hidden');
-            document.getElementById('renameModal').classList.remove('hidden');
-        }
-
-        function executeRename() {
-            const newVal = document.getElementById('renameInput').value.trim();
-            if (!newVal) return;
-            if (renameContext.type === 'member') {
-                const m = members.find(mem => mem.id === renameContext.id);
-                if (m) m.name = newVal;
+        function openRenameModal(type, id) {
+            renameContext = { type, id };
+            const input = document.getElementById('renameInput');
+            const title = document.getElementById('renameModalTitle');
+            const pointsRow = document.getElementById('renamePointsRow');
+            if (type === 'member') {
+                const m = members.find(m => m.id === id);
+                input.value = m.name;
+                title.innerText = "Endre navn";
+                pointsRow.classList.add('hidden');
             } else {
-                const t = taskTypes.find(task => task.id === renameContext.id);
-                const p = parseInt(document.getElementById('renamePointsInput').value);
-                if (t) { t.name = newVal; t.points = isNaN(p) ? t.points : p; }
+                const t = taskTypes.find(t => t.id === id);
+                input.value = t.name;
+                document.getElementById('renamePointsInput').value = t.points;
+                title.innerText = "Endre oppgave";
+                pointsRow.classList.remove('hidden');
+            }
+            document.getElementById('renameModal').classList.remove('hidden');
+        }
+        function closeRenameModal() { document.getElementById('renameModal').classList.add('hidden'); }
+        function executeRename() {
+            const name = document.getElementById('renameInput').value.trim();
+            if (!name) return;
+            if (renameContext.type === 'member') {
+                const m = members.find(m => m.id === renameContext.id);
+                if (m) m.name = name;
+            } else {
+                const t = taskTypes.find(t => t.id === renameContext.id);
+                const pts = parseInt(document.getElementById('renamePointsInput').value);
+                if (t && !isNaN(pts)) { t.name = name; t.points = pts; }
             }
             sync();
             closeRenameModal();
         }
 
-        function closeRenameModal() { document.getElementById('renameModal').classList.add('hidden'); renameContext = null; }
-
-        function undo(id) {
-            history = history.filter(h => h.id !== id);
-            sync();
-        }
-
-        function showMemberHistory(memberId) {
-            const m = members.find(mem => mem.id === memberId);
+        function showMemberHistory(id) {
+            const m = members.find(m => m.id === id);
             if (!m) return;
-            const screen = document.getElementById('memberHistoryScreen');
-            document.getElementById('memberHistoryTitle').innerText = m.name;
+            const hScreen = document.getElementById('memberHistoryScreen');
+            document.getElementById('memberHistoryTitle').innerText = m.name.split(' ')[0];
             document.getElementById('memberHistoryName').innerText = m.name;
             const avatar = document.getElementById('memberHistoryAvatar');
             avatar.innerText = m.name.substring(0,2).toUpperCase();
             avatar.style.background = m.color;
 
-            const mHistory = history.filter(h => String(h.userId) === String(memberId)).sort((a,b) => new Date(b.date) - new Date(a.date));
-            const totalP = mHistory.reduce((s, h) => s + h.points, 0);
-            const totalT = mHistory.length;
+            const periods = ['thisWeek', 'thisMonth', 'all'];
+            const labels = {'thisWeek': 'Uke', 'thisMonth': 'Mnd', 'all': 'Total'};
+            document.getElementById('memberHistoryStats').innerHTML = periods.map(p => `
+                <div class="bg-appBg/50 p-3 rounded-2xl border border-white/5">
+                    <p class="text-[10px] text-textSub uppercase font-bold mb-1">${labels[p]}</p>
+                    <p class="text-xl font-black text-white">${getPointsForPeriod(m.id, p)}<span class="text-[10px] ml-1 opacity-40">P</span></p>
+                </div>
+            `).join('');
 
-            document.getElementById('memberHistoryStats').innerHTML = `
-                <div class="bg-appBg p-3 rounded-2xl border border-white/5 text-center"><p class="text-[10px] text-textSub uppercase font-bold">Total poeng</p><p class="text-xl font-bold text-accent">${totalP}</p></div>
-                <div class="bg-appBg p-3 rounded-2xl border border-white/5 text-center"><p class="text-[10px] text-textSub uppercase font-bold">Bidrag</p><p class="text-xl font-bold text-taskCyan">${totalT}</p></div>
-            `;
-
-            renderMemberHistoryLog(memberId, 'all');
-            screen.classList.remove('hidden');
+            const mHistory = history.filter(h => String(h.userId) === String(id)).sort((a,b) => new Date(b.date) - new Date(a.date));
+            const logEl = document.getElementById('memberHistoryLog');
+            if (mHistory.length === 0) {
+                logEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen loggført historikk ennå.</p>`;
+            } else {
+                logEl.innerHTML = mHistory.map(h => {
+                    const d = new Date(h.date);
+                    const ds = d.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
+                    return `<div class="bg-cardBg p-4 rounded-2xl flex justify-between items-center border border-white/5">
+                        <div class="flex-1">
+                            <p class="text-sm font-bold text-white mb-0.5">${h.tasks.join(', ')}</p>
+                            <p class="text-[10px] text-textSub uppercase font-bold">${ds} · ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}</p>
+                        </div>
+                        <div class="text-right"><p class="text-taskCyan font-black">+${h.points}</p></div>
+                    </div>`;
+                }).join('');
+            }
+            hScreen.classList.remove('hidden');
         }
-
-        function renderMemberHistoryLog(memberId, key) {
-            const container = document.getElementById('memberHistoryLog');
-            const btns = document.getElementById('memberHistoryPeriodButtons');
-            
-            btns.innerHTML = periods.map(p => {
-                const active = p.key === key;
-                return `<button onclick="renderMemberHistoryLog(${memberId}, '${p.key}')" class="px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${active ? 'bg-taskBlue text-white' : 'bg-white/5 text-textSub'}">${p.label}</button>`;
-            }).join('');
-
-            const { start, end } = getDateRange(key);
-            const filtered = history.filter(h => String(h.userId) === String(memberId) && new Date(h.date) >= start && new Date(h.date) < end).sort((a,b) => new Date(b.date) - new Date(a.date));
-
-            if (!filtered.length) { container.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen bidrag i denne perioden.</p>`; return; }
-
-            container.innerHTML = filtered.map(h => {
-                const d = new Date(h.date);
-                const ds = d.toLocaleDateString('no-NO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                return `<div class="bg-cardBg p-4 rounded-2xl border border-white/5 flex justify-between items-center shadow-md"><div><p class="text-sm font-medium leading-tight">${h.tasks.join(', ')}</p><p class="text-[10px] text-textSub uppercase mt-0.5">${ds}</p></div><div class="text-accent font-bold">+${h.points}</div></div>`;
-            }).join('');
-        }
-
         function closeMemberHistory() { document.getElementById('memberHistoryScreen').classList.add('hidden'); }
 
-        function saveSelectedUser(userId) { if (userId) localStorage.setItem('kollektiv_user', userId); }
-        function loadSelectedUser() { return localStorage.getItem('kollektiv_user'); }
-        document.getElementById('userPerforming').addEventListener('change', function() { saveSelectedUser(this.value); });
-
-        let swipeStartY = 0, swipeStartX = 0, activeSwipeItem = null;
         function initSwipeHandlers() {
             const items = document.querySelectorAll('.swipe-item, .admin-swipe-item');
             items.forEach(item => {
+                let startX = 0, currentX = 0, isDragging = false;
                 const content = item.querySelector('.swipe-content');
                 const actions = item.querySelector('.swipe-actions');
-                let startX = 0, currentX = 0, isSwiping = false;
+                const threshold = 50;
 
-                item.ontouchstart = (e) => { startX = e.touches[0].clientX; isSwiping = true; actions.style.visibility = 'visible'; };
-                item.ontouchmove = (e) => {
-                    if (!isSwiping) return;
+                item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; isDragging = true; actions.style.visibility = 'visible'; content.style.transition = 'none'; }, {passive: true});
+                item.addEventListener('touchmove', e => {
+                    if (!isDragging) return;
                     currentX = e.touches[0].clientX - startX;
-                    if (currentX < -10) {
-                        const move = Math.max(currentX, -150);
-                        content.style.transform = `translateX(${move}px)`;
-                        e.preventDefault();
-                    } else {
-                        content.style.transform = '';
-                    }
-                };
-                item.ontouchend = () => {
-                    isSwiping = false;
-                    if (currentX < -60) {
-                        content.style.transform = `translateX(-144px)`;
-                    } else {
-                        content.style.transform = '';
-                        setTimeout(() => actions.style.visibility = 'hidden', 200);
-                    }
-                };
+                    if (currentX > 0) currentX = 0;
+                    if (currentX < -150) currentX = -150 - (Math.abs(currentX + 150) * 0.2);
+                    content.style.transform = `translateX(${currentX}px)`;
+                }, {passive: true});
+                item.addEventListener('touchend', () => {
+                    isDragging = false;
+                    content.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+                    if (currentX < -threshold) { content.style.transform = `translateX(-144px)`; }
+                    else { content.style.transform = `translateX(0)`; setTimeout(() => { if (!isDragging) actions.style.visibility = 'hidden'; }, 300); }
+                    currentX = 0;
+                });
             });
         }
 
-        function openDatePicker(id) {
-            const h = history.find(item => item.id === id);
-            if (!h) return;
-            renderMiniCalendar(id, new Date(h.date));
+        function toggleDesktopMenu(id, btn, type = 'history') {
+            const existing = document.querySelector('.desktop-dropdown');
+            if (existing) {
+                const parentId = existing.getAttribute('data-parent-id');
+                existing.remove();
+                document.querySelectorAll('.desktop-menu-btn').forEach(b => b.classList.remove('active'));
+                if (parentId === String(id)) return;
+            }
+
+            btn.classList.add('active');
+            const rect = btn.getBoundingClientRect();
+            const menu = document.createElement('div');
+            menu.className = 'desktop-dropdown';
+            menu.setAttribute('data-parent-id', id);
+            menu.style.top = `${rect.bottom + 8}px`;
+            menu.style.left = `${rect.left - 130}px`;
+
+            if (type === 'history') {
+                menu.innerHTML = `
+                    <button onclick="openDatePicker(${id})"><i class="fas fa-calendar-alt"></i> Endre dato</button>
+                    <button class="delete-option" onclick="undo(${id})"><i class="fas fa-trash-alt"></i> Slett</button>
+                `;
+            } else {
+                menu.innerHTML = `
+                    <button onclick="openRenameModal('${type}', ${id})"><i class="fas fa-pen"></i> Endre</button>
+                    <button class="delete-option" onclick="confirmDelete('${type}', ${id})"><i class="fas fa-trash-alt"></i> Slett</button>
+                `;
+            }
+
+            document.body.appendChild(menu);
+            const closeMenu = (e) => { if (!menu.contains(e.target) && e.target !== btn) { menu.remove(); btn.classList.remove('active'); document.removeEventListener('click', closeMenu); } };
+            setTimeout(() => document.addEventListener('click', closeMenu), 10);
         }
 
-        function renderMiniCalendar(historyId, selectedDate) {
-            const overlay = document.createElement('div');
-            overlay.className = 'mini-calendar-overlay';
-            overlay.onclick = () => overlay.remove();
-            
-            const now = new Date();
-            let viewMonth = selectedDate.getMonth();
-            let viewYear = selectedDate.getFullYear();
+        function openDatePicker(historyId) {
+            const h = history.find(i => i.id === historyId);
+            if (!h) return;
+            renderCalendar(historyId, new Date(h.date).getFullYear(), new Date(h.date).getMonth(), new Date(h.date));
+        }
 
-            const draw = (m, y) => {
-                const firstDay = new Date(y, m, 1).getDay();
-                const daysInMonth = new Date(y, m + 1, 0).getDate();
-                const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-                const monthName = new Date(y, m).toLocaleString('no-NO', { month: 'long' });
-                
-                let html = `<div class="mini-calendar" onclick="event.stopPropagation()">
+        function renderCalendar(historyId, year, month, selectedDate) {
+            const existing = document.getElementById('miniCalendarOverlay');
+            if (existing) existing.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'miniCalendarOverlay';
+            overlay.className = 'mini-calendar-overlay';
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+            const now = new Date();
+
+            let daysHtml = '';
+            for (let i = 0; i < adjustedFirstDay; i++) daysHtml += `<div class="cal-day other-month"></div>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
+                const isToday = now.getDate() === day && now.getMonth() === month && now.getFullYear() === year;
+                const isFuture = new Date(year, month, day) > now;
+                daysHtml += `<div class="cal-day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}" 
+                             onclick="selectCalendarDate(${historyId}, ${year}, ${month}, ${day})">${day}</div>`;
+            }
+
+            const monthNames = ["Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember"];
+            
+            overlay.innerHTML = `
+                <div class="mini-calendar" onclick="event.stopPropagation()">
                     <div class="cal-header">
-                        <button class="text-textSub p-2" onclick="changeM(-1)"><i class="fas fa-chevron-left"></i></button>
-                        <div class="flex flex-col items-center">
-                            <span class="text-white font-bold capitalize">${monthName}</span>
-                            <div class="cal-year-select relative">
-                                <button onclick="changeY(-1)"><i class="fas fa-minus scale-75"></i></button>
-                                <span class="cal-year-label" onclick="toggleYearDropdown()">${y}</span>
-                                <button onclick="changeY(1)"><i class="fas fa-plus scale-75"></i></button>
-                                <div id="calYearDropdown" class="cal-year-dropdown hidden"></div>
-                            </div>
+                        <div class="cal-year-select" style="position:relative">
+                            <span class="cal-year-label" onclick="toggleYearDropdown()">${monthNames[month]} ${year}</span>
+                            <div id="yearDropdown" class="cal-year-dropdown hidden"></div>
                         </div>
-                        <button class="text-textSub p-2" onclick="changeM(1)"><i class="fas fa-chevron-right"></i></button>
+                        <div class="flex gap-1">
+                            <button onclick="renderCalendar(${historyId}, ${month === 0 ? year - 1 : year}, ${month === 0 ? 11 : month - 1}, new Date('${selectedDate.toISOString()}'))" class="text-textSub px-2 py-1"><i class="fas fa-chevron-left"></i></button>
+                            <button ${month === now.getMonth() && year === now.getFullYear() ? 'disabled class="opacity-10 px-2 py-1"' : `onclick="renderCalendar(${historyId}, ${month === 11 ? year + 1 : year}, ${month === 11 ? 0 : month + 1}, new Date('${selectedDate.toISOString()}'))" class="text-textSub px-2 py-1"`}><i class="fas fa-chevron-right"></i></button>
+                        </div>
                     </div>
                     <div class="cal-grid">
-                        ${['M','T','O','T','F','L','S'].map(d => `<div class="cal-day-label">${d}</div>`).join('')}
-                        ${Array(startOffset).fill('<div class="cal-day other-month"></div>').join('')}`;
-                
-                for(let d=1; d<=daysInMonth; d++) {
-                    const date = new Date(y, m, d);
-                    const isFuture = date > now;
-                    const isSel = date.toDateString() === selectedDate.toDateString();
-                    const isToday = date.toDateString() === now.toDateString();
-                    html += `<div class="cal-day ${isFuture?'future':''} ${isSel?'selected':''} ${isToday?'today':''}" onclick="selectD(${y},${m},${d})">${d}</div>`;
-                }
-                html += `</div><button onclick="this.closest('.mini-calendar-overlay').remove()" class="w-full mt-6 py-3 rounded-xl bg-white/5 text-textSub font-bold text-sm">Avbryt</button></div>`;
-                overlay.innerHTML = html;
-            };
-
-            window.changeM = (v) => { viewMonth += v; if(viewMonth>11){viewMonth=0; viewYear++;} if(viewMonth<0){viewMonth=11; viewYear--;} draw(viewMonth, viewYear); };
-            window.changeY = (v) => { viewYear += v; draw(viewMonth, viewYear); };
-            window.toggleYearDropdown = () => {
-                const d = document.getElementById('calYearDropdown');
-                d.classList.toggle('hidden');
-                if(!d.classList.contains('hidden')) {
-                    const startY = 2023, endY = new Date().getFullYear();
-                    let yHtml = '';
-                    for(let i=endY; i>=startY; i--) yHtml += `<button class="${i===viewYear?'active-year':''}" onclick="selectY(${i})">${i}</button>`;
-                    d.innerHTML = yHtml;
-                }
-            };
-            window.selectY = (y) => { viewYear = y; draw(viewMonth, viewYear); };
-            window.selectD = (y, m, d) => {
-                const h = history.find(item => item.id === historyId);
-                const oldDate = new Date(h.date);
-                const newDate = new Date(y, m, d, oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds());
-                h.date = newDate.toISOString();
-                sync();
-                overlay.remove();
-            };
-
-            draw(viewMonth, viewYear);
+                        <div class="cal-day-label">MA</div><div class="cal-day-label">TI</div><div class="cal-day-label">ON</div><div class="cal-day-label">TO</div><div class="cal-day-label">FR</div><div class="cal-day-label">LØ</div><div class="cal-day-label">SØ</div>
+                        ${daysHtml}
+                    </div>
+                </div>`;
+            overlay.addEventListener('click', closeCalendar);
             document.body.appendChild(overlay);
         }
 
-        let currentDesktopMenu = null;
-        function toggleDesktopMenu(id, btn) {
-            if (currentDesktopMenu) { currentDesktopMenu.remove(); if (currentDesktopMenu.dataset.id == id) { currentDesktopMenu = null; return; } }
-            const rect = btn.getBoundingClientRect();
-            const menu = document.createElement('div');
-            menu.className = 'desktop-dropdown';
-            menu.dataset.id = id;
-            menu.style.top = `${rect.bottom + 8}px`;
-            menu.style.left = `${rect.right - 160}px`;
-            menu.innerHTML = `<button onclick="openDatePicker(${id})"><i class="fas fa-calendar-alt"></i> Endre dato</button><button class="delete-option" onclick="undo(${id})"><i class="fas fa-trash-alt"></i> Slett bidrag</button>`;
-            document.body.appendChild(menu);
-            currentDesktopMenu = menu;
-            btn.classList.add('active');
-            const close = (e) => { if(!menu.contains(e.target) && e.target !== btn) { menu.remove(); btn.classList.remove('active'); document.removeEventListener('click', close); currentDesktopMenu = null; } };
-            setTimeout(() => document.addEventListener('click', close), 10);
+        function selectCalendarDate(historyId, year, month, day) {
+            const h = history.find(i => i.id === historyId);
+            if (!h) return;
+            const oldDate = new Date(h.date);
+            const newDate = new Date(year, month, day, oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds());
+            h.date = newDate.toISOString();
+            sync();
+            closeCalendar();
         }
 
-        function toggleMemberDesktopMenu(id, btn) {
-            if (currentDesktopMenu) { currentDesktopMenu.remove(); if (currentDesktopMenu.dataset.id == id) { currentDesktopMenu = null; return; } }
-            const rect = btn.getBoundingClientRect();
-            const menu = document.createElement('div');
-            menu.className = 'desktop-dropdown';
-            menu.dataset.id = id;
-            menu.style.top = `${rect.bottom + 8}px`;
-            menu.style.left = `${rect.right - 160}px`;
-            menu.innerHTML = `<button onclick="openRenameMember(${id})"><i class="fas fa-pen"></i> Endre navn</button><button class="delete-option" onclick="confirmDeleteMember(${id})"><i class="fas fa-trash-alt"></i> Slett medlem</button>`;
-            document.body.appendChild(menu);
-            currentDesktopMenu = menu;
-            btn.classList.add('active');
-            const close = (e) => { if(!menu.contains(e.target) && e.target !== btn) { menu.remove(); btn.classList.remove('active'); document.removeEventListener('click', close); currentDesktopMenu = null; } };
-            setTimeout(() => document.addEventListener('click', close), 10);
+        function closeCalendar() {
+            const overlay = document.getElementById('miniCalendarOverlay');
+            if (overlay) overlay.remove();
         }
 
-        function toggleTaskDesktopMenu(id, btn) {
-            if (currentDesktopMenu) { currentDesktopMenu.remove(); if (currentDesktopMenu.dataset.id == id) { currentDesktopMenu = null; return; } }
-            const rect = btn.getBoundingClientRect();
-            const menu = document.createElement('div');
-            menu.className = 'desktop-dropdown';
-            menu.dataset.id = id;
-            menu.style.top = `${rect.bottom + 8}px`;
-            menu.style.left = `${rect.right - 160}px`;
-            menu.innerHTML = `<button onclick="openRenameTask(${id})"><i class="fas fa-pen"></i> Endre oppgave</button><button class="delete-option" onclick="confirmDeleteTask(${id})"><i class="fas fa-trash-alt"></i> Slett oppgave</button>`;
-            document.body.appendChild(menu);
-            currentDesktopMenu = menu;
-            btn.classList.add('active');
-            const close = (e) => { if(!menu.contains(e.target) && e.target !== btn) { menu.remove(); btn.classList.remove('active'); document.removeEventListener('click', close); currentDesktopMenu = null; } };
-            setTimeout(() => document.addEventListener('click', close), 10);
+        function saveSelectedUser(userId) {
+            if (userId) localStorage.setItem('kollektiv_user', userId);
         }
 
-        function showContextMenu(e, id) { if (window.innerWidth > 1024) { e.preventDefault(); const items = document.querySelectorAll('.swipe-item'); items.forEach(item => { if (item.dataset.id == id) { const btn = item.querySelector('.desktop-menu-btn'); toggleDesktopMenu(id, btn); } }); } }
-        function showMemberContextMenu(e, id) { if (window.innerWidth > 1024) { e.preventDefault(); const items = document.querySelectorAll('.admin-swipe-item'); items.forEach(item => { if (item.dataset.id == id) { const btn = item.querySelector('.desktop-menu-btn'); toggleMemberDesktopMenu(id, btn); } }); } }
-        function showTaskContextMenu(e, id) { if (window.innerWidth > 1024) { e.preventDefault(); const items = document.querySelectorAll('.admin-swipe-item'); items.forEach(item => { if (item.dataset.id == id) { const btn = item.querySelector('.desktop-menu-btn'); toggleTaskDesktopMenu(id, btn); } }); } }
+        function loadSelectedUser() {
+            return localStorage.getItem('kollektiv_user');
+        }
+
+        document.getElementById('userPerforming').addEventListener('change', function() {
+            saveSelectedUser(this.value);
+        });
     </script>
 </body>
 </html>
