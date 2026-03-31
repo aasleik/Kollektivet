@@ -235,8 +235,11 @@
                 <i class="fas fa-pen"></i>
             </div>
             <h3 id="renameModalTitle" class="text-xl font-bold mb-4 text-center">Endre navn</h3>
-            <input type="text" id="renameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm mb-6" placeholder="Nytt navn...">
-            <div class="flex gap-3">
+            <input type="text" id="renameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm mb-3" placeholder="Nytt navn...">
+            <div id="renamePointsRow" class="hidden mb-3">
+                <input type="number" id="renamePointsInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Antall poeng...">
+            </div>
+            <div class="flex gap-3 mt-3">
                 <button onclick="closeRenameModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold">Avbryt</button>
                 <button onclick="executeRename()" class="flex-1 py-4 rounded-2xl bg-accent text-white font-bold shadow-lg shadow-accent/20">Lagre</button>
             </div>
@@ -406,13 +409,33 @@
 
             if (!log.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`; return; }
 
-            hEl.innerHTML = log.map(h => {
-                const m = members.find(mem => mem.id === h.userId);
-                if(!m) return "";
-                const init = m.name.substring(0,2).toUpperCase();
-                const taskCount = h.tasks.length;
-                const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
-                return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
+            // Group entries by date
+            const dateGroups = {};
+            const dateGroupOrder = [];
+            log.forEach(h => {
+                const d = new Date(h.date);
+                const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                if (!dateGroups[dk]) { dateGroups[dk] = { date: d, items: [] }; dateGroupOrder.push(dk); }
+                dateGroups[dk].items.push(h);
+            });
+            const _today = new Date();
+            const _yesterday = new Date(_today.getTime() - 86400000);
+
+            hEl.innerHTML = dateGroupOrder.map(dk => {
+                const grp = dateGroups[dk];
+                const gd = grp.date;
+                let dlabel;
+                if (gd.toDateString() === _today.toDateString()) dlabel = 'I dag';
+                else if (gd.toDateString() === _yesterday.toDateString()) dlabel = 'I går';
+                else { dlabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' }); dlabel = dlabel.charAt(0).toUpperCase() + dlabel.slice(1); }
+
+                const itemsHtml = grp.items.map(h => {
+                    const m = members.find(mem => mem.id === h.userId);
+                    if(!m) return "";
+                    const init = m.name.substring(0,2).toUpperCase();
+                    const taskCount = h.tasks.length;
+                    const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
+                    return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
                     <div class="swipe-actions">
                         <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
                         <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
@@ -426,6 +449,9 @@
                         </div>
                     </div>
                 </div>`;
+                }).join('');
+
+                return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
             }).join('');
             initSwipeHandlers();
         }
@@ -623,13 +649,33 @@
                 return;
             }
 
-            logEl.innerHTML = log.map(h => {
-                const date = new Date(h.date);
-                const timeStr = date.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-                const dateStr = date.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
-                const taskCount = h.tasks.length;
-                const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
-                return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
+            // Group entries by date
+            const dateGroups2 = {};
+            const dateGroupOrder2 = [];
+            log.forEach(h => {
+                const d = new Date(h.date);
+                const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                if (!dateGroups2[dk]) { dateGroups2[dk] = { date: d, items: [] }; dateGroupOrder2.push(dk); }
+                dateGroups2[dk].items.push(h);
+            });
+            const _today2 = new Date();
+            const _yesterday2 = new Date(_today2.getTime() - 86400000);
+
+            logEl.innerHTML = dateGroupOrder2.map(dk => {
+                const grp = dateGroups2[dk];
+                const gd = grp.date;
+                let dlabel;
+                if (gd.toDateString() === _today2.toDateString()) dlabel = 'I dag';
+                else if (gd.toDateString() === _yesterday2.toDateString()) dlabel = 'I går';
+                else { dlabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' }); dlabel = dlabel.charAt(0).toUpperCase() + dlabel.slice(1); }
+
+                const itemsHtml = grp.items.map(h => {
+                    const date = new Date(h.date);
+                    const timeStr = date.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = date.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
+                    const taskCount = h.tasks.length;
+                    const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
+                    return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
                     <div class="swipe-actions">
                         <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
                         <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
@@ -643,6 +689,9 @@
                         </div>
                     </div>
                 </div>`;
+                }).join('');
+
+                return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
             }).join('');
             initSwipeHandlers();
         }
@@ -929,14 +978,24 @@
         // Rename modal state
         let renameCallback = null;
 
-        function openRenameModal(title, currentValue, callback) {
+        function openRenameModal(title, currentValue, callback, showPoints, currentPoints) {
             renameCallback = callback;
             document.getElementById('renameModalTitle').innerText = title;
             const input = document.getElementById('renameInput');
             input.value = currentValue;
+            const pointsRow = document.getElementById('renamePointsRow');
+            const pointsInput = document.getElementById('renamePointsInput');
+            if (showPoints) {
+                pointsRow.classList.remove('hidden');
+                pointsInput.value = currentPoints !== undefined ? currentPoints : '';
+            } else {
+                pointsRow.classList.add('hidden');
+                pointsInput.value = '';
+            }
             document.getElementById('renameModal').classList.remove('hidden');
             setTimeout(() => input.focus(), 100);
             input.onkeydown = function(e) { if (e.key === 'Enter') executeRename(); };
+            pointsInput.onkeydown = function(e) { if (e.key === 'Enter') executeRename(); };
         }
 
         function closeRenameModal() {
@@ -946,8 +1005,10 @@
 
         function executeRename() {
             const newName = document.getElementById('renameInput').value.trim();
+            const pointsInput = document.getElementById('renamePointsInput');
+            const newPoints = pointsInput.value !== '' ? parseInt(pointsInput.value) : undefined;
             if (newName && renameCallback) {
-                renameCallback(newName);
+                renameCallback(newName, newPoints);
             }
             closeRenameModal();
         }
@@ -970,18 +1031,23 @@
             closeAllAdminSwipes();
             const t = taskTypes.find(tt => tt.id === id);
             if (!t) return;
-            openRenameModal('Endre oppgavenavn', t.name, function(newName) {
+            openRenameModal('Endre oppgave', t.name, function(newName, newPoints) {
+                let changed = false;
                 if (newName !== t.name) {
                     const oldNameLower = t.name.toLowerCase();
                     const newNameLower = newName.toLowerCase();
                     t.name = newName;
-                    // Update task name in all history entries
                     history.forEach(h => {
                         h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn);
                     });
-                    sync();
+                    changed = true;
                 }
-            });
+                if (newPoints !== undefined && !isNaN(newPoints) && newPoints > 0 && newPoints !== t.points) {
+                    t.points = newPoints;
+                    changed = true;
+                }
+                if (changed) sync();
+            }, true, t.points);
         }
 
         // Mini calendar for changing contribution date
