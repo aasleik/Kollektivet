@@ -260,20 +260,37 @@
         function playIntroSound(durationSeconds = 7) {
             const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3'; 
             const audio = new Audio(audioUrl);
+            
+            // Vi setter volumet til 0 før vi starter for å kunne fade inn
             audio.volume = 0;
-            audio.play().catch(e => console.log("Avspilling blokkert: ", e));
 
-            let fadeIn = setInterval(() => {
-                if (audio.volume < 0.9) audio.volume += 0.1;
-                else clearInterval(fadeIn);
-            }, 100);
-
-            setTimeout(() => {
-                let fadeOut = setInterval(() => {
-                    if (audio.volume > 0.1) audio.volume -= 0.1;
-                    else { audio.pause(); audio.currentTime = 0; clearInterval(fadeOut); }
+            // Viktig: Vi må bruke en 'Promise' for å håndtere avspilling i moderne nettlesere
+            audio.play().then(() => {
+                // Først når lyden faktisk har startet, begynner vi å fade inn
+                let fadeIn = setInterval(() => {
+                    if (audio.volume < 0.8) {
+                        audio.volume = Math.min(0.9, audio.volume + 0.1);
+                    } else {
+                        clearInterval(fadeIn);
+                    }
                 }, 100);
-            }, durationSeconds * 1000);
+
+                // Start nedtelling for fade ut og stopp
+                setTimeout(() => {
+                    let fadeOut = setInterval(() => {
+                        if (audio.volume > 0.1) {
+                            audio.volume = Math.max(0, audio.volume - 0.1);
+                        } else {
+                            audio.pause();
+                            audio.currentTime = 0;
+                            clearInterval(fadeOut);
+                        }
+                    }, 100);
+                }, durationSeconds * 1000);
+                
+            }).catch(e => {
+                console.error("Kunne ikke spille lyd. Dette skyldes ofte manglende brukerinteraksjon.", e);
+            });
         }
 
         const defaultTaskTypes = [
