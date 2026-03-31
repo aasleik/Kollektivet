@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kollektivet Pro</title>
+    <title>Kollektivet</title>
 
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -39,6 +39,10 @@
         .swipe-content { transition: transform 0.3s ease-out; position: relative; z-index: 2; background: var(--card-bg); }
         .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; z-index: 1; }
         .action-btn { display: flex; align-items: center; justify-content: center; width: 70px; color: white; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.875rem; cursor: pointer; }
+        .cal-day.selected { background-color: var(--accent-blue); color: white; }
+        .cal-day.other-month { color: #30363d; }
     </style>
 </head>
 <body class="pb-20">
@@ -80,7 +84,7 @@
         <div id="tab-tasks" class="space-y-6">
             <div class="card p-4">
                 <label class="block text-xs font-semibold text-textSub uppercase tracking-wider mb-2">Hvem utfører?</label>
-                <select id="userPerforming" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3 text-white focus:outline-none"></select>
+                <select id="userPerforming" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3 text-white"></select>
             </div>
             <div id="taskList" class="grid grid-cols-2 gap-3"></div>
             <div id="selectionSummary" class="fixed bottom-24 left-4 right-4 bg-accent-blue text-white rounded-xl p-4 shadow-2xl flex justify-between items-center hidden">
@@ -97,25 +101,22 @@
             <div id="memberStats" class="space-y-3"></div>
         </div>
 
-        <div id="tab-history" class="hidden">
-            <div id="historyList" class="space-y-4"></div>
-            <p id="historyLimitText" class="text-center text-[10px] text-textSub mt-6 hidden">Viser kun de siste 50 bidragene</p>
-        </div>
+        <div id="tab-history" class="hidden"><div id="historyList" class="space-y-4"></div></div>
 
         <div id="tab-admin" class="hidden space-y-8">
             <section>
                 <h3 class="text-textSub text-xs font-bold uppercase tracking-widest mb-4">Medlemmer</h3>
                 <div id="adminMemberList" class="space-y-2 mb-4"></div>
                 <div class="flex gap-2">
-                    <input type="text" id="newMemberName" maxlength="30" placeholder="Navn" class="flex-1 bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm">
+                    <input type="text" id="newMemberName" placeholder="Navn" class="flex-1 bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm">
                     <button onclick="addMember()" class="bg-accent-blue text-white px-4 py-2 rounded-lg"><i class="fas fa-plus"></i></button>
                 </div>
             </section>
             <section>
-                <h3 class="text-textSub text-xs font-bold uppercase tracking-widest mb-4">Oppgavetyper</h3>
+                <h3 class="text-textSub text-xs font-bold uppercase tracking-widest mb-4">Oppgaver</h3>
                 <div id="adminTaskList" class="space-y-2 mb-4"></div>
                 <div class="space-y-2">
-                    <input type="text" id="newTaskName" maxlength="30" placeholder="Oppgave" class="w-full bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm">
+                    <input type="text" id="newTaskName" placeholder="Oppgave" class="w-full bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm">
                     <div class="flex gap-2">
                         <input type="number" id="newTaskPoints" placeholder="Poeng" class="flex-1 bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm">
                         <button onclick="addTaskType()" class="bg-accent-blue text-white px-6 py-2 rounded-lg font-bold">Legg til</button>
@@ -129,9 +130,9 @@
         <div class="w-full max-w-sm bg-[#161B22] border border-[#30363D] rounded-2xl p-6 space-y-4">
             <h3 id="renameModalTitle" class="text-lg font-bold">Endre</h3>
             <div class="space-y-3">
-                <input type="text" id="renameInput" maxlength="30" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3 text-white">
+                <input type="text" id="renameInput" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3">
                 <div id="renamePointsRow" class="hidden">
-                    <input type="number" id="renamePointsInput" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3 text-white">
+                    <input type="number" id="renamePointsInput" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3">
                 </div>
             </div>
             <div class="flex gap-3">
@@ -151,11 +152,6 @@
         let chartInstance = null;
 
         function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
-
-        // Validering for å hindre spesialtegn som ødelegger databasen eller lange navn
-        function sanitize(str) {
-            return str.replace(/[.#$[\]]/g, "").trim();
-        }
 
         const firebaseConfig = { databaseURL: "https://kollektivet-b26a6-default-rtdb.europe-west1.firebasedatabase.app/" };
 
@@ -209,9 +205,9 @@
             const container = document.getElementById('taskList');
             container.innerHTML = taskTypes.map(t => {
                 const count = selectedTasks.filter(id => id === t.id).length;
-                return `<div onclick="toggleTask('${t.id}')" class="card p-4 flex flex-col items-center relative active:scale-95 transition-transform ${count > 0 ? 'border-accent-blue ring-1 ring-accent-blue' : ''}">
+                return `<div onclick="toggleTask('${t.id}')" class="card p-4 flex flex-col items-center relative ${count > 0 ? 'border-accent-blue ring-1 ring-accent-blue' : ''}">
                     ${count > 0 ? `<div class="absolute -top-2 -right-2 bg-accent-blue text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">${count}</div>` : ''}
-                    <span class="text-sm font-medium text-center">${t.name}</span>
+                    <span class="text-sm font-medium">${t.name}</span>
                     <span class="text-[10px] text-textSub font-bold px-2 py-1 bg-[#0A0E17] rounded-full mt-2">${t.points} poeng</span>
                 </div>`;
             }).join('');
@@ -232,9 +228,9 @@
             const uid = document.getElementById('userPerforming').value;
             const m = members.find(mem => mem.id === uid);
             if (!m || selectedTasks.length === 0) return;
-            
+            const pts = selectedTasks.reduce((s, id) => s + (Number(taskTypes.find(t => t.id === id)?.points) || 0), 0);
             const entry = {
-                id: generateId(), userId: uid, userName: m.name, points: 0,
+                id: generateId(), userId: uid, userName: m.name, points: pts,
                 tasks: selectedTasks.map(id => taskTypes.find(t => t.id === id).name.toLowerCase()),
                 date: new Date().toISOString()
             };
@@ -245,17 +241,19 @@
             showTab('stats');
         }
 
+        // DEN NYE METODEN FOR POENGSUM: Full rekalkulering
         function recalculateAllScores() {
+            // 1. Oppdater hvert bidrag i historikken basert på NÅVÆRENDE poeng i taskTypes
             history.forEach(h => {
                 let total = 0;
-                if (h.tasks) {
-                    h.tasks.forEach(taskName => {
-                        const type = taskTypes.find(tt => tt.name.toLowerCase() === taskName.toLowerCase());
-                        if (type) total += (Number(type.points) || 0);
-                    });
-                }
+                h.tasks.forEach(taskName => {
+                    const type = taskTypes.find(tt => tt.name.toLowerCase() === taskName.toLowerCase());
+                    if (type) total += (Number(type.points) || 0);
+                });
                 h.points = total;
             });
+
+            // 2. Oppdater hver medlems totalpoeng basert på den oppdaterte historikken
             members.forEach(m => {
                 m.points = history
                     .filter(h => h.userId === m.id)
@@ -268,7 +266,7 @@
             document.getElementById('memberStats').innerHTML = sorted.map((m, i) => `
                 <div class="card p-4 flex items-center justify-between">
                     <div class="flex items-center gap-4">
-                        <span class="text-textSub font-bold w-4">${i + 1}</span>
+                        <span class="text-textSub font-bold">${i + 1}</span>
                         <span class="font-bold">${m.name}</span>
                     </div>
                     <span class="text-xl font-black text-accent-blue">${m.points || 0}</span>
@@ -285,31 +283,22 @@
                     labels: sorted.map(m => m.name),
                     datasets: [{ data: sorted.map(m => m.points || 0), backgroundColor: '#58A6FF', borderRadius: 6 }]
                 },
-                options: { 
-                    plugins: { legend: { display: false } }, 
-                    scales: { y: { beginAtZero: true, grid: { color: '#30363D' } }, x: { grid: { display: false } } } 
-                }
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
             });
         }
 
         function renderTodayHistory() {
             const container = document.getElementById('historyList');
-            if (history.length === 0) { container.innerHTML = '<div class="text-center py-20 text-textSub">Ingen historikk</div>'; return; }
-            
-            // Punkt 5: Sorter alltid historikk etter dato før visning (viktig hvis dato endres via kalender)
-            const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
-            const limitedHistory = sortedHistory.slice(0, 50);
-            document.getElementById('historyLimitText').classList.toggle('hidden', history.length <= 50);
-
-            container.innerHTML = limitedHistory.map(h => {
+            if (history.length === 0) { container.innerHTML = '<div class="text-center py-20 text-textSub">Tomt</div>'; return; }
+            container.innerHTML = history.map(h => {
                 const m = members.find(mem => mem.id === h.userId);
-                const taskDisplay = h.tasks ? h.tasks.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ') : 'Ingen oppgaver';
+                const taskDisplay = h.tasks.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ');
                 return `<div class="swipe-container card">
                     <div id="swipe-${h.id}" class="swipe-content p-4 flex justify-between items-center">
                         <div class="truncate mr-4">
                             <div class="flex items-center gap-2">
                                 <span class="font-bold">${m ? m.name : 'Slettet'}</span>
-                                <span class="text-[10px] text-textSub">${new Date(h.date).toLocaleDateString('no-NO')} ${new Date(h.date).toLocaleTimeString('no-NO', {hour:'2-digit', minute:'2-digit'})}</span>
+                                <span class="text-[10px] text-textSub">${new Date(h.date).toLocaleTimeString('no-NO', {hour:'2-digit', minute:'2-digit'})}</span>
                             </div>
                             <p class="text-xs text-textSub truncate">${taskDisplay}</p>
                         </div>
@@ -334,7 +323,7 @@
                 <div class="swipe-container card">
                     <div class="swipe-content p-3 flex justify-between items-center">
                         <span>${m.name}</span>
-                        <span class="text-xs text-textSub font-bold">${m.points || 0} p</span>
+                        <span class="text-xs text-textSub">${m.points || 0} p</span>
                     </div>
                     <div class="swipe-actions">
                         <button onclick="startRenameMember('${m.id}')" class="action-btn bg-accent-blue"><i class="fas fa-pen"></i></button>
@@ -349,7 +338,7 @@
                 <div class="swipe-container card">
                     <div class="swipe-content p-3 flex justify-between items-center">
                         <span>${t.name}</span>
-                        <span class="text-xs text-textSub font-bold">${t.points} p</span>
+                        <span class="text-xs text-textSub">${t.points} p</span>
                     </div>
                     <div class="swipe-actions">
                         <button onclick="startRenameTask('${t.id}')" class="action-btn bg-accent-blue"><i class="fas fa-pen"></i></button>
@@ -360,53 +349,23 @@
         }
 
         function addMember() {
-            const rawName = document.getElementById('newMemberName').value;
-            const n = sanitize(rawName);
-            if (!n) return;
-
-            // Punkt 2: Sjekk for duplikat navn
-            if (members.some(m => m.name.toLowerCase() === n.toLowerCase())) {
-                alert("Et medlem med dette navnet finnes allerede.");
-                return;
-            }
-
-            members.push({ id: generateId(), name: n, points: 0 }); 
-            sync(); 
-            document.getElementById('newMemberName').value = '';
+            const n = document.getElementById('newMemberName').value.trim();
+            if (n) { members.push({ id: generateId(), name: n, points: 0 }); sync(); }
         }
 
         function addTaskType() {
-            const rawName = document.getElementById('newTaskName').value;
-            const n = sanitize(rawName);
+            const n = document.getElementById('newTaskName').value.trim();
             const p = parseInt(document.getElementById('newTaskPoints').value);
-            if (!n || isNaN(p)) return;
-
-            // Punkt 2: Sjekk for duplikat oppgave
-            if (taskTypes.some(t => t.name.toLowerCase() === n.toLowerCase())) {
-                alert("En oppgave med dette navnet finnes allerede.");
-                return;
-            }
-
-            taskTypes.push({ id: generateId(), name: n, points: p }); 
-            sync(); 
-            document.getElementById('newTaskName').value = ''; 
-            document.getElementById('newTaskPoints').value = '';
+            if (n && !isNaN(p)) { taskTypes.push({ id: generateId(), name: n, points: p }); sync(); }
         }
 
-        function deleteMember(id) { 
-            if(confirm('Slette medlem? Dette vil også fjerne all historikk tilknyttet denne personen.')) { 
-                history = history.filter(h => h.userId !== id);
-                members = members.filter(m => m.id !== id); 
-                recalculateAllScores();
-                sync(); 
-            } 
-        }
+        function deleteMember(id) { if(confirm('Slette medlem?')) { members = members.filter(m => m.id !== id); sync(); } }
 
         function deleteTaskType(id) {
             const t = taskTypes.find(tt => tt.id === id);
-            if (t && confirm(`Slette "${t.name}"? Dette vil fjerne oppgaven fra all historikk og rekalkulere poeng.`)) {
+            if (t && confirm(`Slette "${t.name}"? Dette rekalkulerer alle poeng.`)) {
                 const nameLower = t.name.toLowerCase();
-                history.forEach(h => { if(h.tasks) h.tasks = h.tasks.filter(tn => tn !== nameLower); });
+                history.forEach(h => h.tasks = h.tasks.filter(tn => tn !== nameLower));
                 taskTypes = taskTypes.filter(tt => tt.id !== id);
                 recalculateAllScores();
                 sync();
@@ -417,40 +376,23 @@
             const t = taskTypes.find(tt => tt.id === id);
             if (!t) return;
             openRenameModal('Endre oppgave', t.name, (newName, newPoints) => {
-                const n = sanitize(newName);
-                if (!n) return;
-
-                // Punkt 2: Sjekk duplikat (men tillat eget navn)
-                if (taskTypes.some(tt => tt.id !== id && tt.name.toLowerCase() === n.toLowerCase())) {
-                    alert("En oppgave med dette navnet finnes allerede.");
-                    return;
-                }
-
                 const oldNameLower = t.name.toLowerCase();
-                const newNameLower = n.toLowerCase();
-                history.forEach(h => { if(h.tasks) h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn); });
-                t.name = n;
-                if (newPoints !== undefined && !isNaN(newPoints)) t.points = newPoints;
-                recalculateAllScores();
+                const newNameLower = newName.toLowerCase();
+                // Oppdater navnet i historikken først
+                history.forEach(h => {
+                    h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn);
+                });
+                t.name = newName;
+                if (newPoints !== undefined) t.points = newPoints;
+                
+                recalculateAllScores(); // Bruk den nye metoden for å oppdatere alt
                 sync();
             }, true, t.points);
         }
 
         function startRenameMember(id) {
             const m = members.find(mem => mem.id === id);
-            if (m) openRenameModal('Endre navn', m.name, (newName) => { 
-                const n = sanitize(newName);
-                if(!n) return;
-
-                // Punkt 2: Sjekk duplikat
-                if (members.some(mem => mem.id !== id && mem.name.toLowerCase() === n.toLowerCase())) {
-                    alert("Et medlem med dette navnet finnes allerede.");
-                    return;
-                }
-
-                m.name = n; 
-                sync(); 
-            });
+            if (m) openRenameModal('Endre navn', m.name, (n) => { m.name = n; sync(); });
         }
 
         function openRenameModal(t, v, c, s, p) {
@@ -463,9 +405,9 @@
         }
 
         function executeRename() {
-            const n = document.getElementById('renameInput').value;
+            const n = document.getElementById('renameInput').value.trim();
             const p = parseInt(document.getElementById('renamePointsInput').value);
-            if (renameCallback) renameCallback(n, isNaN(p) ? undefined : p);
+            if (n && renameCallback) renameCallback(n, isNaN(p) ? undefined : p);
             closeRenameModal();
         }
 
