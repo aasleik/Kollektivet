@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kollektivet</title>
 
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Kollektivet">
@@ -645,7 +645,8 @@
             const log = filterHistory(activeMemberHistoryPeriod).filter(h => h.userId === m.id);
 
             if (!log.length) {
-                logEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert.</p>`;
+                const emptyPeriodLabel = periods.find(p => p.key === activeMemberHistoryPeriod).label;
+                logEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${emptyPeriodLabel.toLowerCase()}.</p>`;
                 return;
             }
 
