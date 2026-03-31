@@ -257,6 +257,25 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        function playIntroSound(durationSeconds = 7) {
+            const audioUrl = 'https://raw.githubusercontent.com/skriv_inn_brukernavn/prosjekt/main/sang.mp3'; 
+            const audio = new Audio(audioUrl);
+            audio.volume = 0;
+            audio.play().catch(e => console.log("Avspilling blokkert: ", e));
+
+            let fadeIn = setInterval(() => {
+                if (audio.volume < 0.9) audio.volume += 0.1;
+                else clearInterval(fadeIn);
+            }, 100);
+
+            setTimeout(() => {
+                let fadeOut = setInterval(() => {
+                    if (audio.volume > 0.1) audio.volume -= 0.1;
+                    else { audio.pause(); audio.currentTime = 0; clearInterval(fadeOut); }
+                }, 100);
+            }, durationSeconds * 1000);
+        }
+
         const defaultTaskTypes = [
             { id: 1, name: "Redd sengen", points: 10, icon: 'bed' },
             { id: 2, name: "Laget kaffe", points: 5, icon: 'mug-hot' },
@@ -381,7 +400,12 @@
                         hoverOffset: 0
                     }]
                 },
-                options: { cutout: '80%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 500 } }
+                options: { 
+                    cutout: '80%', 
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }, 
+                    animation: { duration: 500 },
+                    onClick: () => { playIntroSound(7); }
+                }
             });
         }
 
