@@ -571,12 +571,11 @@
             closeAllAdminSwipes(); 
             customConfirm("Vil du fjerne denne oppgaven fra listen?", () => { 
                 taskTypes = taskTypes.filter(t => t.id !== id); 
-                recalculateHistoryPoints(); // Rekalkuler historikk uten denne oppgaven
+                recalculateHistoryPoints();
                 sync(); 
             }); 
         }
 
-        // --- NY FUNKSJON FOR REKALKULERING ---
         function recalculateHistoryPoints() {
             history.forEach(h => {
                 let newTotal = 0;
@@ -586,7 +585,6 @@
                 });
                 h.points = newTotal;
             });
-            // Oppdater også medlemmenes totalpoeng hvis nødvendig (for 'all' perioden)
             members.forEach(m => {
                 m.points = history.filter(h => h.userId === m.id).reduce((sum, h) => sum + h.points, 0);
             });
@@ -1018,7 +1016,7 @@
             if (!t) return;
             openRenameModal('Endre oppgave', t.name, function(newName, newPoints) {
                 let changed = false;
-                if (newName !== t.name) {
+                if (newName && newName !== t.name) {
                     const oldNameLower = t.name.toLowerCase();
                     const newNameLower = newName.toLowerCase();
                     t.name = newName;
@@ -1032,7 +1030,7 @@
                     changed = true;
                 }
                 if (changed) {
-                    recalculateHistoryPoints(); // Rekalkuler historikk med nye poengsatser
+                    recalculateHistoryPoints();
                     sync();
                 }
             }, true, t.points);
