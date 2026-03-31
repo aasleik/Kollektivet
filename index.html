@@ -40,7 +40,6 @@
     <style>
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-        /* Prevent iOS auto-zoom on form inputs and ensure good touch targets */
         input, select, textarea { font-size: 16px !important; }
         select { -webkit-appearance: none; }
         button, a, [role="button"], .swipe-item, .admin-swipe-item { min-height: 44px; }
@@ -72,7 +71,6 @@
         .cal-year-dropdown button { display: block; width: 100%; padding: 8px 16px; background: none; border: none; color: #CBD5E1; font-size: 13px; cursor: pointer; text-align: center; transition: background 0.15s; }
         .cal-year-dropdown button:hover { background: rgba(255,255,255,0.06); }
         .cal-year-dropdown button.active-year { color: #7C3AED; font-weight: bold; background: rgba(124,58,237,0.1); }
-        /* Desktop context menu for contributions */
         .swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
         .swipe-item .desktop-menu-btn:hover { background: rgba(255,255,255,0.15); color: white; }
         @media (hover: hover) and (pointer: fine) {
@@ -84,7 +82,6 @@
         .desktop-dropdown button:hover { background: rgba(255,255,255,0.06); }
         .desktop-dropdown button.delete-option { color: #F87171; }
         .desktop-dropdown button.delete-option:hover { background: rgba(239,68,68,0.1); }
-        /* Swipe items for admin lists (members & tasks) */
         .admin-swipe-item { position: relative; overflow: hidden; border-radius: 12px; }
         .admin-swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease, padding-right 0.15s; }
         .admin-swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
@@ -247,11 +244,6 @@
     </div>
 
     <script>
-        // ##########################################################################
-        // ######################## !!! ERSTATT DETTE !!! ###########################
-        // ##########################################################################
-        // Slett blokken under og lim inn det du kopierte fra Firebase:
-
         const firebaseConfig = {
             apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
             authDomain: "kollektivet-fc493.firebaseapp.com",
@@ -262,15 +254,9 @@
             appId: "1:131176107292:web:1a375b8560e00bba4b7ed9"
         };
 
-        // ##########################################################################
-        // ##########################################################################
-        // ##########################################################################
-
-        // Initialiser Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Standarddata
         const defaultTaskTypes = [
             { id: 1, name: "Redd sengen", points: 10, icon: 'bed' },
             { id: 2, name: "Laget kaffe", points: 5, icon: 'mug-hot' },
@@ -282,7 +268,6 @@
         let members = [], taskTypes = [], history = [], myChart, selectedTasksOnScreen = [];
         let activePeriod = 'today';
 
-        // Hent data i sanntid
         db.ref('/').on('value', (snapshot) => {
             const raw = snapshot.val();
             const isFirstLoad = raw === null;
@@ -296,28 +281,8 @@
 
         function sync() { db.ref('/').set({ members, taskTypes, history }); }
 
-        // NYE FARGER: Valgt for maksimal kontrast i diagrammer
         const allColors = [
-            '#F87171', // Red
-            '#60A5FA', // Blue
-            '#34D399', // Green
-            '#FBBF24', // Yellow/Amber
-            '#A78BFA', // Purple
-            '#F472B6', // Pink
-            '#FB923C', // Orange
-            '#22D3EE', // Cyan
-            '#818CF8', // Indigo
-            '#A3E635', // Lime
-            '#E879F9', // Fuchsia
-            '#2DD4BF', // Teal
-            '#FCA5A5', // Soft Red
-            '#93C5FD', // Soft Blue
-            '#6EE7B7', // Soft Green
-            '#FDE047', // Soft Yellow
-            '#C4B5FD', // Soft Purple
-            '#F9A8D4', // Soft Pink
-            '#67E8F9', // Soft Cyan
-            '#BEF264'  // Soft Lime
+            '#F87171', '#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F472B6', '#FB923C', '#22D3EE', '#818CF8', '#A3E635', '#E879F9', '#2DD4BF', '#FCA5A5', '#93C5FD', '#6EE7B7', '#FDE047', '#C4B5FD', '#F9A8D4', '#67E8F9', '#BEF264'
         ];
 
         function fixDuplicateColors() {
@@ -398,7 +363,6 @@
             const legendEl = document.getElementById('chartLegend');
             if (!members.length) { statusEl.innerText = "Legg til medlemmer!"; return; }
 
-            const periodLabel = periods.find(p => p.key === activePeriod).label.toLowerCase();
             const membersWithPeriodPoints = members.map(m => ({ ...m, periodPoints: getPointsForPeriod(m.id, activePeriod) }));
             const sorted = [...membersWithPeriodPoints].sort((a,b) => b.periodPoints - a.periodPoints);
             statusEl.innerText = sorted[0].periodPoints > 0 ? `${sorted[0].name.split(' ')[0]} leder!` : "Ingen poeng ennå";
@@ -427,11 +391,11 @@
             const periodLabel = periods.find(p => p.key === activePeriod).label;
             headingEl.innerText = periodLabel;
 
-            const log = filterHistory(activePeriod);
+            // FIX: Sorter historikken etter dato (nyeste først) før gruppering
+            const log = filterHistory(activePeriod).sort((a, b) => new Date(b.date) - new Date(a.date));
 
             if (!log.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`; return; }
 
-            // Group entries by date
             const dateGroups = {};
             const dateGroupOrder = [];
             log.forEach(h => {
@@ -548,6 +512,7 @@
         function undo(id) {
             closeAllSwipes();
             const h = history.find(i => i.id === id);
+            if(!h) return;
             const m = members.find(mem => mem.id === h.userId);
             if(m) m.points = Math.max(0, m.points - h.points);
             history = history.filter(i => i.id !== id);
@@ -640,7 +605,6 @@
             avatar.style.background = m.color;
             avatar.innerText = init;
 
-            // Render stats for active filtered period
             const statsEl = document.getElementById('memberHistoryStats');
             const activePeriodLabel = periods.find(p => p.key === activeMemberHistoryPeriod).label;
             const periodHistory = filterHistory(activeMemberHistoryPeriod).filter(h => h.userId === m.id);
@@ -658,23 +622,23 @@
                     <p class="text-[10px] text-textSub">${activePeriodLabel}</p>
                 </div>`;
 
-            // Render period filter buttons
             const btnEl = document.getElementById('memberHistoryPeriodButtons');
             btnEl.innerHTML = periods.map(p => {
                 const active = p.key === activeMemberHistoryPeriod;
                 return `<button onclick="setMemberHistoryPeriod('${p.key}')" class="px-3 py-1.5 rounded-full font-bold text-xs transition-all whitespace-nowrap ${active ? 'bg-taskBlue text-white' : 'bg-cardBg border border-white/5 text-textSub hover:bg-white/5'}">${p.label}</button>`;
             }).join('');
 
-            // Render filtered log
             const logEl = document.getElementById('memberHistoryLog');
-            const log = filterHistory(activeMemberHistoryPeriod).filter(h => h.userId === m.id);
+            // FIX: Sorter historikken etter dato (nyeste først) før gruppering
+            const log = filterHistory(activeMemberHistoryPeriod)
+                        .filter(h => h.userId === m.id)
+                        .sort((a, b) => new Date(b.date) - new Date(a.date));
 
             if (!log.length) {
                 logEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert.</p>`;
                 return;
             }
 
-            // Group entries by date
             const dateGroups2 = {};
             const dateGroupOrder2 = [];
             log.forEach(h => {
@@ -722,10 +686,7 @@
             initSwipeHandlers();
         }
 
-        // Swipe-to-reveal actions for log entries
         let currentlyOpenSwipe = null;
-
-        // Desktop dropdown menu for contribution actions
         let currentDesktopMenu = null;
         function toggleDesktopMenu(id, btn) {
             closeDesktopMenu();
@@ -750,7 +711,6 @@
                 currentDesktopMenu = null;
             }
         }
-        // Close desktop dropdown when clicking/touching anywhere outside of it (use capture phase to work inside modals with stopPropagation)
         document.addEventListener('click', function(e) {
             if (currentDesktopMenu && !e.target.closest('.desktop-dropdown') && !e.target.closest('.desktop-menu-btn')) {
                 closeDesktopMenu();
@@ -762,9 +722,7 @@
             }
         }, true);
 
-        // Right-click context menu on desktop for contributions
         function showContextMenu(e, id) {
-            // Only on desktop (pointer: fine)
             if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
             e.preventDefault();
             closeDesktopMenu();
@@ -774,10 +732,8 @@
                 <button onclick="event.stopPropagation(); closeDesktopMenu(); openDatePicker(${id})"><i class="fas fa-calendar-alt" style="color:#3B82F6"></i> Endre dato</button>
                 <button class="delete-option" onclick="event.stopPropagation(); closeDesktopMenu(); undo(${id})"><i class="fas fa-trash-alt"></i> Slett bidrag</button>`;
             document.body.appendChild(dropdown);
-            // Position at mouse cursor
             dropdown.style.top = e.clientY + 'px';
             dropdown.style.left = e.clientX + 'px';
-            // Keep within viewport
             const rect = dropdown.getBoundingClientRect();
             if (rect.right > window.innerWidth) dropdown.style.left = (window.innerWidth - rect.width - 8) + 'px';
             if (rect.bottom > window.innerHeight) dropdown.style.top = (window.innerHeight - rect.height - 8) + 'px';
@@ -799,9 +755,8 @@
             document.querySelectorAll('.swipe-item').forEach(item => {
                 let startX = 0, startY = 0, currentX = 0, swiping = false, isHorizontal = null;
                 const content = item.querySelector('.swipe-content');
-                const revealWidth = 144; // two 72px buttons
+                const revealWidth = 144;
                 const threshold = 60;
-
                 const actions = item.querySelector('.swipe-actions');
 
                 item.addEventListener('touchstart', e => {
@@ -817,21 +772,15 @@
                     if (!swiping) return;
                     const dx = e.touches[0].clientX - startX;
                     const dy = e.touches[0].clientY - startY;
-
-                    // Lock direction after 10px movement
                     if (isHorizontal === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
                         isHorizontal = Math.abs(dx) > Math.abs(dy);
                     }
-
                     if (isHorizontal === false) { swiping = false; return; }
                     if (isHorizontal !== true) return;
-
                     if (actions) actions.style.visibility = 'visible';
                     currentX = e.touches[0].clientX;
                     let diff = currentX - startX;
-                    // Only allow swiping left (negative)
                     if (diff > 0) diff = 0;
-                    // Cap at revealWidth
                     if (diff < -revealWidth) diff = -revealWidth;
                     content.style.transform = `translateX(${diff}px)`;
                 }, { passive: true });
@@ -841,9 +790,7 @@
                     swiping = false;
                     content.style.transition = 'transform 0.25s ease';
                     const diff = currentX - startX;
-
                     if (diff < -threshold) {
-                        // Close any other open swipe first
                         if (currentlyOpenSwipe && currentlyOpenSwipe !== item) {
                             const otherContent = currentlyOpenSwipe.querySelector('.swipe-content');
                             otherContent.style.transition = 'transform 0.25s ease';
@@ -861,7 +808,6 @@
                 });
             });
 
-            // Close swipe when tapping elsewhere
             document.addEventListener('touchstart', e => {
                 if (currentlyOpenSwipe && !currentlyOpenSwipe.contains(e.target)) {
                     closeAllSwipes();
@@ -869,7 +815,6 @@
             }, { passive: true });
         }
 
-        // Swipe handlers for admin lists (members & tasks)
         let currentlyOpenAdminSwipe = null;
 
         function closeAllAdminSwipes() {
@@ -889,7 +834,6 @@
                 const content = item.querySelector('.swipe-content');
                 const revealWidth = 144;
                 const threshold = 60;
-
                 const actions = item.querySelector('.swipe-actions');
 
                 item.addEventListener('touchstart', e => {
@@ -948,7 +892,6 @@
             }, { passive: true });
         }
 
-        // Desktop three-dot menu for admin items (members & tasks)
         function toggleAdminDesktopMenu(type, id, btn) {
             closeDesktopMenu();
             const existing = btn.parentElement.querySelector('.desktop-dropdown');
@@ -969,14 +912,12 @@
             const rect = btn.getBoundingClientRect();
             dropdown.style.top = (rect.bottom + 4) + 'px';
             dropdown.style.left = (rect.right - 160) + 'px';
-            // Keep within viewport
             const dRect = dropdown.getBoundingClientRect();
             if (dRect.right > window.innerWidth) dropdown.style.left = (window.innerWidth - dRect.width - 8) + 'px';
             if (dRect.bottom > window.innerHeight) dropdown.style.top = (window.innerHeight - dRect.height - 8) + 'px';
             currentDesktopMenu = { dropdown, btn };
         }
 
-        // Right-click context menu for admin items
         function showAdminContextMenu(e, type, id) {
             if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
             e.preventDefault();
@@ -1001,7 +942,6 @@
             currentDesktopMenu = { dropdown, btn: null };
         }
 
-        // Rename modal state
         let renameCallback = null;
 
         function openRenameModal(title, currentValue, callback, showPoints, currentPoints) {
@@ -1039,7 +979,6 @@
             closeRenameModal();
         }
 
-        // Rename member
         function startRenameMember(id) {
             closeAllAdminSwipes();
             const m = members.find(mem => mem.id === id);
@@ -1052,7 +991,6 @@
             });
         }
 
-        // Rename task
         function startRenameTask(id) {
             closeAllAdminSwipes();
             const t = taskTypes.find(tt => tt.id === id);
@@ -1076,7 +1014,6 @@
             }, true, t.points);
         }
 
-        // Mini calendar for changing contribution date
         function openDatePicker(historyId) {
             closeAllSwipes();
             const h = history.find(i => i.id === historyId);
@@ -1096,16 +1033,13 @@
         }
 
         function renderCalendar(historyId, year, month, selectedDate) {
-            // Remove existing calendar
             const existing = document.getElementById('miniCalendarOverlay');
             if (existing) existing.remove();
 
             const currentYear = new Date().getFullYear();
             const earliestYear = getEarliestYear();
-            // Clamp year to valid range
             if (year < earliestYear) year = earliestYear;
             if (year > currentYear) year = currentYear;
-            // Clamp month so we can't navigate to future months
             const currentMonth = new Date().getMonth();
             if (year === currentYear && month > currentMonth) month = currentMonth;
 
@@ -1114,20 +1048,18 @@
 
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
-            let startDow = firstDay.getDay(); // 0=Sunday
-            startDow = startDow === 0 ? 6 : startDow - 1; // Convert to Monday=0
+            let startDow = firstDay.getDay();
+            startDow = startDow === 0 ? 6 : startDow - 1;
 
             const selY = selectedDate.getFullYear(), selM = selectedDate.getMonth(), selD = selectedDate.getDate();
 
             let daysHtml = dayLabels.map(d => `<div class="cal-day-label">${d}</div>`).join('');
 
-            // Previous month days
             const prevLastDay = new Date(year, month, 0).getDate();
             for (let i = startDow - 1; i >= 0; i--) {
                 daysHtml += `<div class="cal-day other-month">${prevLastDay - i}</div>`;
             }
 
-            // Current month days
             const now = new Date();
             const todayY = now.getFullYear(), todayM = now.getMonth(), todayD = now.getDate();
             for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -1141,14 +1073,12 @@
                 daysHtml += `<div class="${cls}"${!isFuture ? ` onclick="selectCalendarDate(${historyId}, ${year}, ${month}, ${d})"` : ''}>${d}</div>`;
             }
 
-            // Next month days to fill grid
             const totalCells = startDow + lastDay.getDate();
             const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
             for (let d = 1; d <= remaining; d++) {
                 daysHtml += `<div class="cal-day other-month">${d}</div>`;
             }
 
-            // Build year dropdown options
             let yearOptionsHtml = '';
             for (let y = currentYear; y >= earliestYear; y--) {
                 yearOptionsHtml += `<button class="${y === year ? 'active-year' : ''}" onclick="event.stopPropagation(); renderCalendar(${historyId}, ${y}, ${month}, new Date('${selectedDate.toISOString()}'))">${y}</button>`;
@@ -1194,7 +1124,6 @@
             if (overlay) overlay.remove();
         }
 
-        // Remember selected user in localStorage
         function saveSelectedUser(userId) {
             if (userId) localStorage.setItem('kollektiv_user', userId);
         }
