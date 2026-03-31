@@ -94,8 +94,6 @@
             .admin-swipe-item:hover .desktop-menu-btn, .admin-swipe-item .desktop-menu-btn.active { display: flex; }
             .admin-swipe-item:hover .swipe-content { padding-right: 48px; }
         }
-
-        #editContributionModal { position: fixed; inset: 0; background: #0A0E17; z-index: 300; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
     </style>
 </head>
 <body class="bg-appBg text-textMain min-h-screen flex flex-col overflow-x-hidden">
@@ -149,29 +147,6 @@
 
         <button onclick="saveRegisteredTasks()" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10 active:scale-95 transition-transform">
             Lagre
-        </button>
-    </div>
-
-    <div id="editContributionModal" class="hidden">
-        <header class="flex justify-between items-center mb-6">
-            <button onclick="hideEditContribution()" class="text-textMain text-sm flex items-center gap-1.5"><i class="fas fa-chevron-left"></i> Avbryt</button>
-            <h1 class="text-xl font-bold">Endre bidrag</h1>
-            <div></div>
-        </header>
-        
-        <div class="mb-6">
-            <label class="text-xs text-textSub mb-2 block ml-1 uppercase font-bold">Dato</label>
-            <button id="editContrDateBtn" class="w-full bg-cardBg p-4 rounded-2xl text-textMain text-left border border-white/10 flex justify-between items-center">
-                <span id="editContrDateLabel">Velg dato...</span>
-                <i class="fas fa-calendar-alt text-accent"></i>
-            </button>
-        </div>
-
-        <h2 class="text-2xl font-extrabold mb-4 leading-tight">Hva ble gjort?</h2>
-        <div id="editContrTaskBubbles" class="flex flex-wrap gap-3 pb-32"></div>
-
-        <button id="saveEditContrBtn" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10 active:scale-95 transition-transform">
-            Lagre endringer
         </button>
     </div>
 
@@ -272,7 +247,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
             authDomain: "kollektivet-fc493.firebaseapp.com",
-  	    databaseURL: "https://kollektivet-fc493-default-rtdb.europe-west1.firebasedatabase.app",
+            databaseURL: "https://kollektivet-fc493-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "kollektivet-fc493",
             storageBucket: "kollektivet-fc493.firebasestorage.app",
             messagingSenderId: "131176107292",
@@ -447,8 +422,8 @@
                     const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
                     return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
                     <div class="swipe-actions">
-                        <button class="action-edit" onclick="startEditContribution(${h.id})"><i class="fas fa-pen text-base"></i><span>Endre</span></button>
-                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                        <button class="action-edit" onclick="startEditContribution(${h.id})"><i class="fas fa-pen text-base"></i><span>Endre bidraget</span></button>
+                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slette bidraget</span></button>
                     </div>
                     <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
                         <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
@@ -513,78 +488,52 @@
             sync(); hideTaskSelection();
         }
 
-        // EDIT CONTRIBUTION LOGIC
-        let editingContributionId = null;
-        let editingContrTasks = [];
-        let editingContrDate = null;
-
+        // Funksjon for å endre selve bidraget (dato eller oppgaver)
         function startEditContribution(id) {
             closeAllSwipes();
             closeDesktopMenu();
             const h = history.find(i => i.id === id);
             if(!h) return;
-            
-            editingContributionId = id;
-            editingContrDate = new Date(h.date);
-            // Finn IDs for de lagrede tekst-oppgavene
-            editingContrTasks = [];
+
+            // Vi gjenbruker Task Selection skjermen for å endre oppgaver, 
+            // men legger til en måte å endre dato også.
+            selectedTasksOnScreen = [];
             h.tasks.forEach(tName => {
                 const found = taskTypes.find(tt => tt.name.toLowerCase() === tName.toLowerCase());
-                if(found) editingContrTasks.push(found.id);
+                if(found) selectedTasksOnScreen.push(found.id);
             });
 
-            renderEditContrUI();
-            document.getElementById('editContributionModal').classList.remove('hidden');
-        }
+            showTaskSelection();
+            
+            // Endrer Lagre-knappen midlertidig til å oppdatere eksisterende i stedet for ny
+            const saveBtn = document.querySelector('#taskSelectionScreen button[onclick="saveRegisteredTasks()"]');
+            const originalOnclick = saveBtn.getAttribute('onclick');
+            
+            // Legger til en datovelger i task selection
+            const dateBtn = document.createElement('button');
+            dateBtn.id = "tempDateBtn";
+            dateBtn.className = "w-full bg-cardBg p-4 rounded-2xl text-textMain mb-4 border border-white/10 flex justify-between";
+            dateBtn.innerHTML = `<span>Endre dato (${new Date(h.date).toLocaleDateString()})</span> <i class="fas fa-calendar-alt text-accent"></i>`;
+            dateBtn.onclick = () => openDatePicker(id);
+            document.getElementById('userPerforming').parentElement.after(dateBtn);
 
-        function hideEditContribution() {
-            document.getElementById('editContributionModal').classList.add('hidden');
-            editingContributionId = null;
-        }
-
-        function renderEditContrUI() {
-            const dateLabel = editingContrDate.toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' });
-            document.getElementById('editContrDateLabel').innerText = dateLabel;
-            document.getElementById('editContrDateBtn').onclick = () => openDatePicker(editingContributionId, true);
-
-            document.getElementById('editContrTaskBubbles').innerHTML = taskTypes.map(t => {
-                const sel = editingContrTasks.includes(t.id);
-                return `<button onclick="toggleEditT(${t.id})" class="px-5 py-4 rounded-2xl text-sm transition-all flex items-center gap-3 ${sel ? 'bg-taskCyan text-appBg font-bold scale-95 shadow-lg' : 'bg-cardBg border border-white/5 text-textMain'}">
-                    ${sel ? '<i class="fas fa-check-circle text-appBg"></i>' : `<i class="fas fa-${t.icon || 'star'} text-taskBlue"></i>`}
-                    <span>${t.name}</span>
-                    <span class="text-[10px] ${sel ? 'text-appBg/60' : 'text-textSub'}">${t.points}p</span>
-                </button>`;
-            }).join('');
-
-            document.getElementById('saveEditContrBtn').onclick = saveEditContribution;
-        }
-
-        function toggleEditT(id) {
-            editingContrTasks = editingContrTasks.includes(id) ? editingContrTasks.filter(i => i !== id) : [...editingContrTasks, id];
-            renderEditContrUI();
-        }
-
-        function saveEditContribution() {
-            if(!editingContrTasks.length) return alert("Velg minst én oppgave!");
-            const h = history.find(i => i.id === editingContributionId);
-            if(!h) return;
-
-            const taskNames = [];
-            let totalPoints = 0;
-            editingContrTasks.forEach(tid => {
-                const t = taskTypes.find(tt => tt.id === tid);
-                if(t) {
+            saveBtn.onclick = () => {
+                const taskNames = [];
+                let totalPoints = 0;
+                selectedTasksOnScreen.forEach(tid => {
+                    const t = taskTypes.find(tt => tt.id === tid);
                     taskNames.push(t.name.toLowerCase());
                     totalPoints += t.points;
-                }
-            });
-
-            h.tasks = taskNames;
-            h.points = totalPoints;
-            h.date = editingContrDate.toISOString();
-            
-            sync();
-            hideEditContribution();
+                });
+                h.tasks = taskNames;
+                h.points = totalPoints;
+                
+                sync();
+                hideTaskSelection();
+                // Rydd opp
+                saveBtn.setAttribute('onclick', originalOnclick);
+                if(document.getElementById('tempDateBtn')) document.getElementById('tempDateBtn').remove();
+            };
         }
 
         let pendingDeleteAction = null;
@@ -757,8 +706,8 @@
                     const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
                     return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
                     <div class="swipe-actions">
-                        <button class="action-edit" onclick="startEditContribution(${h.id})"><i class="fas fa-pen text-base"></i><span>Endre</span></button>
-                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                        <button class="action-edit" onclick="startEditContribution(${h.id})"><i class="fas fa-pen text-base"></i><span>Endre bidraget</span></button>
+                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slette bidraget</span></button>
                     </div>
                     <div class="swipe-content flex gap-4 items-center p-3 bg-cardBg rounded-2xl border border-white/5">
                         <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
@@ -787,8 +736,8 @@
             const dropdown = document.createElement('div');
             dropdown.className = 'desktop-dropdown';
             dropdown.innerHTML = `
-                <button onclick="event.stopPropagation(); startEditContribution(${id})"><i class="fas fa-pen" style="color:#3B82F6"></i> Endre bidrag</button>
-                <button class="delete-option" onclick="event.stopPropagation(); undo(${id})"><i class="fas fa-trash-alt"></i> Slett bidrag</button>`;
+                <button onclick="event.stopPropagation(); startEditContribution(${id})"><i class="fas fa-pen" style="color:#3B82F6"></i> Endre bidraget</button>
+                <button class="delete-option" onclick="event.stopPropagation(); undo(${id})"><i class="fas fa-trash-alt"></i> Slette bidraget</button>`;
             document.body.appendChild(dropdown);
             const rect = btn.getBoundingClientRect();
             dropdown.style.top = (rect.bottom + 4) + 'px';
@@ -815,8 +764,8 @@
             const dropdown = document.createElement('div');
             dropdown.className = 'desktop-dropdown';
             dropdown.innerHTML = `
-                <button onclick="event.stopPropagation(); startEditContribution(${id})"><i class="fas fa-pen" style="color:#3B82F6"></i> Endre bidrag</button>
-                <button class="delete-option" onclick="event.stopPropagation(); undo(${id})"><i class="fas fa-trash-alt"></i> Slett bidrag</button>`;
+                <button onclick="event.stopPropagation(); startEditContribution(${id})"><i class="fas fa-pen" style="color:#3B82F6"></i> Endre bidraget</button>
+                <button class="delete-option" onclick="event.stopPropagation(); undo(${id})"><i class="fas fa-trash-alt"></i> Slette bidraget</button>`;
             document.body.appendChild(dropdown);
             dropdown.style.top = e.clientY + 'px';
             dropdown.style.left = e.clientX + 'px';
@@ -1077,44 +1026,38 @@
             if (!t) return;
             openRenameModal('Endre oppgave', t.name, function(newName, newPoints) {
                 let changed = false;
-                const oldNameLower = t.name.toLowerCase();
-                const newNameLower = newName.toLowerCase();
-                
-                // Endre navn
                 if (newName !== t.name) {
+                    const oldNameLower = t.name.toLowerCase();
+                    const newNameLower = newName.toLowerCase();
                     t.name = newName;
                     history.forEach(h => {
                         h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn);
                     });
                     changed = true;
                 }
-
-                // Endre poeng og oppdater ALL historikk
                 if (newPoints !== undefined && !isNaN(newPoints) && newPoints > 0 && newPoints !== t.points) {
                     t.points = newPoints;
-                    
-                    // Oppdater alle historiske bidrag som inneholder denne oppgaven
+                    // HER ER LOGIKKEN FOR Å OPPDATERE ALLE BIDRAG
                     history.forEach(h => {
-                        let newTotal = 0;
+                        let total = 0;
                         h.tasks.forEach(tName => {
-                            const type = taskTypes.find(tt => tt.name.toLowerCase() === tName.toLowerCase());
-                            if(type) newTotal += type.points;
+                            const foundType = taskTypes.find(tt => tt.name.toLowerCase() === tName.toLowerCase());
+                            if(foundType) total += foundType.points;
                         });
-                        h.points = newTotal;
+                        h.points = total;
                     });
                     changed = true;
                 }
-                
                 if (changed) sync();
             }, true, t.points);
         }
 
-        function openDatePicker(historyId, isForEditScreen = false) {
+        function openDatePicker(historyId) {
             closeAllSwipes();
             const h = history.find(i => i.id === historyId);
             if (!h) return;
-            const currentDate = isForEditScreen ? editingContrDate : new Date(h.date);
-            renderCalendar(historyId, currentDate.getFullYear(), currentDate.getMonth(), currentDate, isForEditScreen);
+            const currentDate = new Date(h.date);
+            renderCalendar(historyId, currentDate.getFullYear(), currentDate.getMonth(), currentDate);
         }
 
         function getEarliestYear() {
@@ -1127,7 +1070,7 @@
             return earliest;
         }
 
-        function renderCalendar(historyId, year, month, selectedDate, isForEditScreen = false) {
+        function renderCalendar(historyId, year, month, selectedDate) {
             const existing = document.getElementById('miniCalendarOverlay');
             if (existing) existing.remove();
 
@@ -1163,7 +1106,7 @@
                 if (isSel) cls += ' selected';
                 if (isToday) cls += ' today';
                 if (isFuture) cls += ' future';
-                daysHtml += `<div class="${cls}"${!isFuture ? ` onclick="selectCalendarDate(${historyId}, ${year}, ${month}, ${d}, ${isForEditScreen})"` : ''}>${d}</div>`;
+                daysHtml += `<div class="${cls}"${!isFuture ? ` onclick="selectCalendarDate(${historyId}, ${year}, ${month}, ${d})"` : ''}>${d}</div>`;
             }
 
             const totalCells = startDow + lastDay.getDate();
@@ -1174,7 +1117,7 @@
 
             let yearOptionsHtml = '';
             for (let y = currentYear; y >= earliestYear; y--) {
-                yearOptionsHtml += `<button class="${y === year ? 'active-year' : ''}" onclick="event.stopPropagation(); renderCalendar(${historyId}, ${y}, ${month}, new Date('${selectedDate.toISOString()}'), ${isForEditScreen})">${y}</button>`;
+                yearOptionsHtml += `<button class="${y === year ? 'active-year' : ''}" onclick="event.stopPropagation(); renderCalendar(${historyId}, ${y}, ${month}, new Date('${selectedDate.toISOString()}'))">${y}</button>`;
             }
 
             const overlay = document.createElement('div');
@@ -1191,9 +1134,9 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                            <button onclick="renderCalendar(${historyId}, ${month === 0 ? year - 1 : year}, ${month === 0 ? 11 : month - 1}, new Date('${selectedDate.toISOString()}'), ${isForEditScreen})" class="text-textSub px-2 py-1"><i class="fas fa-chevron-left"></i></button>
+                            <button onclick="renderCalendar(${historyId}, ${month === 0 ? year - 1 : year}, ${month === 0 ? 11 : month - 1}, new Date('${selectedDate.toISOString()}'))" class="text-textSub px-2 py-1"><i class="fas fa-chevron-left"></i></button>
                             <span class="font-bold text-sm" style="min-width:90px;text-align:center">${monthNames[month]}</span>
-                            <button ${year === new Date().getFullYear() && month === new Date().getMonth() ? 'disabled style="opacity:0.25;cursor:not-allowed" class="text-textSub px-2 py-1"' : `onclick="renderCalendar(${historyId}, ${month === 11 ? year + 1 : year}, ${month === 11 ? 0 : month + 1}, new Date('${selectedDate.toISOString()}'), ${isForEditScreen})"`}><i class="fas fa-chevron-right"></i></button>
+                            <button ${year === new Date().getFullYear() && month === new Date().getMonth() ? 'disabled style="opacity:0.25;cursor:not-allowed" class="text-textSub px-2 py-1"' : `onclick="renderCalendar(${historyId}, ${month === 11 ? year + 1 : year}, ${month === 11 ? 0 : month + 1}, new Date('${selectedDate.toISOString()}'))" class="text-textSub px-2 py-1"`}><i class="fas fa-chevron-right"></i></button>
                         </div>
                     </div>
                     <div class="cal-grid">${daysHtml}</div>
@@ -1202,20 +1145,18 @@
             document.body.appendChild(overlay);
         }
 
-        function selectCalendarDate(historyId, year, month, day, isForEditScreen) {
+        function selectCalendarDate(historyId, year, month, day) {
             const h = history.find(i => i.id === historyId);
             if (!h) return;
-            const oldDate = isForEditScreen ? editingContrDate : new Date(h.date);
+            const oldDate = new Date(h.date);
             const newDate = new Date(year, month, day, oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds());
-            
-            if(isForEditScreen) {
-                editingContrDate = newDate;
-                renderEditContrUI();
-            } else {
-                h.date = newDate.toISOString();
-                sync();
-            }
+            h.date = newDate.toISOString();
+            sync();
             closeCalendar();
+            // Oppdaterer visning hvis vi er inne i Edit-modus
+            if(document.getElementById('tempDateBtn')) {
+                document.getElementById('tempDateBtn').querySelector('span').innerText = `Endre dato (${newDate.toLocaleDateString()})`;
+            }
         }
 
         function closeCalendar() {
