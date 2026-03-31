@@ -421,7 +421,7 @@
             const _today = new Date();
             const _yesterday = new Date(_today.getTime() - 86400000);
 
-            hEl.innerHTML = dateGroupOrder.map(dk => {
+            const rendered = dateGroupOrder.map(dk => {
                 const grp = dateGroups[dk];
                 const gd = grp.date;
                 let dlabel;
@@ -451,8 +451,11 @@
                 </div>`;
                 }).join('');
 
+                if (!itemsHtml.trim()) return '';
                 return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
             }).join('');
+
+            hEl.innerHTML = rendered.trim() || `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`;
             initSwipeHandlers();
         }
 
@@ -645,8 +648,7 @@
             const log = filterHistory(activeMemberHistoryPeriod).filter(h => h.userId === m.id);
 
             if (!log.length) {
-                const emptyPeriodLabel = periods.find(p => p.key === activeMemberHistoryPeriod).label;
-                logEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${emptyPeriodLabel.toLowerCase()}.</p>`;
+                logEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert.</p>`;
                 return;
             }
 
@@ -692,6 +694,7 @@
                 </div>`;
                 }).join('');
 
+                if (!itemsHtml.trim()) return '';
                 return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
             }).join('');
             initSwipeHandlers();
