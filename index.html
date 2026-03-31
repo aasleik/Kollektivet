@@ -259,7 +259,7 @@
                 // Fade inn
                 let fadeIn = setInterval(() => {
                     if (globalAudio.volume < 0.25) {
-                        globalAudio.volume = Math.min(0.3, globalAudio.volume + 0.05);
+                        globalAudio.volume = Math.min(0.3, globalAudio.volume + 0.01);
                     } else {
                         clearInterval(fadeIn);
                     }
@@ -269,7 +269,7 @@
                 setTimeout(() => {
                     let fadeOut = setInterval(() => {
                         if (globalAudio.volume > 0.05) {
-                            globalAudio.volume -= 0.05;
+                            globalAudio.volume -= 0.01;
                         } else {
                             clearInterval(fadeOut);
                             globalAudio.pause();
