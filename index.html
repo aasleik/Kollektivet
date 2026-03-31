@@ -46,24 +46,36 @@
         @media (max-width: 640px) {
             input, select, textarea { padding: 10px 12px; border-radius: 8px; }
         }
-        .swipe-item, .admin-swipe-item { position: relative; overflow: hidden; }
-        .swipe-item .swipe-content, .admin-swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease, padding-left 0.15s; }
-        .swipe-item .swipe-actions, .admin-swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
-        .swipe-item .swipe-actions button, .admin-swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
-        .swipe-item .swipe-actions .action-date, .admin-swipe-item .swipe-actions .action-edit { background: #3B82F6; border-radius: 0; }
-        .swipe-item .swipe-actions .action-delete, .admin-swipe-item .swipe-actions .action-delete { background: #EF4444; border-radius: 0; }
+        .swipe-item { position: relative; overflow: hidden; }
+        .swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease, padding-left 0.15s; }
+        .swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
+        .swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
+        .swipe-item .swipe-actions .action-date { background: #3B82F6; border-radius: 0; }
+        .swipe-item .swipe-actions .action-delete { background: #EF4444; border-radius: 0; }
         
         /* Desktop context menu */
-        .swipe-item .desktop-menu-btn, .admin-swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+        .swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
         @media (hover: hover) and (pointer: fine) {
-            .swipe-item:hover .desktop-menu-btn, .swipe-item .desktop-menu-btn.active,
-            .admin-swipe-item:hover .desktop-menu-btn, .admin-swipe-item .desktop-menu-btn.active { display: flex; }
-            .swipe-item:hover .swipe-content, .admin-swipe-item:hover .swipe-content { padding-right: 48px; }
+            .swipe-item:hover .desktop-menu-btn, .swipe-item .desktop-menu-btn.active { display: flex; }
+            .swipe-item:hover .swipe-content { padding-right: 48px; }
         }
         .desktop-dropdown { position: fixed; z-index: 9999; background: #1E2538; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 160px; }
         .desktop-dropdown button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; background: none; border: none; color: #CBD5E1; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: background 0.15s; }
         .desktop-dropdown button:hover { background: rgba(255,255,255,0.06); }
         .desktop-dropdown button.delete-option { color: #F87171; }
+
+        /* Admin Swipe Items */
+        .admin-swipe-item { position: relative; overflow: hidden; border-radius: 12px; }
+        .admin-swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease; }
+        .admin-swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
+        .admin-swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
+        .admin-swipe-item .swipe-actions .action-edit { background: #3B82F6; }
+        .admin-swipe-item .swipe-actions .action-delete { background: #EF4444; }
+        .admin-swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; align-items: center; justify-content: center; }
+        @media (hover: hover) and (pointer: fine) {
+            .admin-swipe-item:hover .desktop-menu-btn { display: flex; }
+            .admin-swipe-item:hover .swipe-content { padding-right: 48px; }
+        }
     </style>
 </head>
 <body class="bg-appBg text-textMain min-h-screen flex flex-col overflow-x-hidden">
@@ -84,13 +96,47 @@
         </section>
 
         <section class="flex-1 space-y-6">
-            <h2 id="logHeading" class="text-2xl sm:text-3xl font-extrabold">I dag</h2>
+            <h2 id="logHeading" class="text-2xl sm:text-3xl font-extrabold">Historikk</h2>
             <div id="todayHistory" class="space-y-4"></div>
         </section>
 
         <button onclick="showTaskSelection()" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-accent text-white px-8 py-4 rounded-full font-bold shadow-2xl shadow-accent/40 text-lg flex items-center gap-2.5 z-10 active:scale-95 transition-transform">
             <i class="fas fa-plus text-sm"></i> Legg til bidrag
         </button>
+    </div>
+
+    <div id="adminModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onclick="closeAllModals()">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
+            <h3 class="text-lg font-bold mb-6 text-center">Innstillinger</h3>
+            <div class="space-y-3">
+                <button onclick="closeAllModals(); toggleModal('memberModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Legg til medlemmer</span><i class="fas fa-user-friends text-accent"></i></button>
+                <button onclick="closeAllModals(); toggleModal('taskAdminModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Legg til oppgaver</span><i class="fas fa-tasks text-accent"></i></button>
+            </div>
+            <button onclick="toggleModal('adminModal')" class="mt-8 w-full text-textSub text-sm font-bold">Lukk meny</button>
+        </div>
+    </div>
+
+    <div id="renameModal" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6" onclick="closeRenameModal()">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
+            <div class="w-16 h-16 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fas fa-pen"></i>
+            </div>
+            <h3 id="renameModalTitle" class="text-xl font-bold mb-4 text-center">Endre oppgave</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] uppercase text-textSub font-bold ml-1 mb-1 block">Navn på oppgave</label>
+                    <input type="text" id="renameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Navn...">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase text-textSub font-bold ml-1 mb-1 block">Poengverdi</label>
+                    <input type="number" id="renamePointsInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Poeng...">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeRenameModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold">Avbryt</button>
+                <button onclick="executeRename()" class="flex-1 py-4 rounded-2xl bg-accent text-white font-bold shadow-lg shadow-accent/20">Lagre</button>
+            </div>
+        </div>
     </div>
 
     <div id="taskSelectionScreen" class="hidden fixed inset-0 bg-appBg z-50 p-5 flex flex-col overflow-y-auto">
@@ -102,364 +148,4 @@
         <div class="relative mb-6">
             <label class="text-xs text-textSub mb-2 block ml-1 uppercase font-bold">Hvem er du?</label>
             <select id="userPerforming" class="w-full bg-cardBg p-4 rounded-2xl text-textMain border border-white/10 appearance-none">
-                <option value="">Velg navn...</option>
-            </select>
-            <i class="fas fa-chevron-down absolute right-4 bottom-5 text-textSub pointer-events-none"></i>
-        </div>
-        <h2 class="text-2xl sm:text-4xl font-extrabold mb-6 leading-tight">Hva har du gjort i dag?</h2>
-        <div id="taskBubbleContainer" class="flex flex-wrap gap-3 pb-32"></div>
-        <button onclick="saveRegisteredTasks()" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10">Lagre</button>
-    </div>
-
-    <div id="adminModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onclick="closeAllModals()">
-        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
-            <h3 class="text-lg font-bold mb-6 text-center">Innstillinger</h3>
-            <div class="space-y-3">
-                <button onclick="closeAllModals(); toggleModal('memberModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Medlemmer</span><i class="fas fa-user-friends text-accent"></i></button>
-                <button onclick="closeAllModals(); toggleModal('taskAdminModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Oppgaver</span><i class="fas fa-tasks text-accent"></i></button>
-            </div>
-            <button onclick="toggleModal('adminModal')" class="mt-8 w-full text-textSub text-sm font-bold">Lukk meny</button>
-        </div>
-    </div>
-
-    <div id="taskAdminModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6" onclick="toggleModal('taskAdminModal')">
-        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm overflow-y-auto max-h-[85vh]" onclick="event.stopPropagation()">
-            <h3 class="text-xl font-bold mb-4">Oppgaver og Poeng</h3>
-            <div class="space-y-3 mb-6 bg-appBg p-4 rounded-2xl border border-white/5">
-                <input type="text" id="newTaskName" placeholder="F.eks. Støvsuge" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
-                <input type="number" id="newTaskPoints" placeholder="Antall poeng" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
-                <button onclick="addTaskType()" class="w-full bg-accent py-3 rounded-xl font-bold">Legg til oppgave</button>
-            </div>
-            <div id="manageTasksList" class="space-y-2"></div>
-            <button onclick="toggleModal('taskAdminModal')" class="mt-8 w-full text-textSub font-bold">Tilbake</button>
-        </div>
-    </div>
-
-    <div id="editTaskModal" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6" onclick="closeEditTaskModal()">
-        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
-            <h3 class="text-xl font-bold mb-4 text-center">Endre oppgave</h3>
-            <div class="space-y-4">
-                <input type="text" id="editTaskName" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Navn...">
-                <input type="number" id="editTaskPoints" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Poeng...">
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="closeEditTaskModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold">Avbryt</button>
-                <button onclick="executeTaskEdit()" class="flex-1 py-4 rounded-2xl bg-accent text-white font-bold">Lagre</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="memberModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6" onclick="toggleModal('memberModal')">
-        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm" onclick="event.stopPropagation()">
-            <h3 class="text-xl font-bold mb-4">Medlemmer</h3>
-            <div class="flex gap-2 mb-6">
-                <input type="text" id="newMemberName" placeholder="Navn..." class="flex-1 bg-appBg p-4 rounded-xl border border-white/10 text-sm">
-                <button onclick="addMember()" class="bg-accent px-5 rounded-xl font-bold"><i class="fas fa-plus"></i></button>
-            </div>
-            <div id="manageMembersList" class="space-y-2"></div>
-            <button onclick="toggleModal('memberModal')" class="mt-8 w-full text-textSub font-bold">Tilbake</button>
-        </div>
-    </div>
-
-    <script>
-        // FIREBASE CONFIG
-        const firebaseConfig = {
-            apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
-            authDomain: "kollektivet-fc493.firebaseapp.com",
-            databaseURL: "https://kollektivet-fc493-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "kollektivet-fc493",
-            storageBucket: "kollektivet-fc493.firebasestorage.app",
-            messagingSenderId: "131176107292",
-            appId: "1:131176107292:web:1a375b8560e00bba4b7ed9"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        let members = [], taskTypes = [], history = [], myChart, selectedTasksOnScreen = [];
-        let activePeriod = 'today';
-        let editingTaskId = null;
-
-        db.ref('/').on('value', (snapshot) => {
-            const data = snapshot.val() || {};
-            members = data.members || [];
-            taskTypes = data.taskTypes || [];
-            history = data.history || [];
-            renderAll();
-        });
-
-        function sync() { db.ref('/').set({ members, taskTypes, history }); }
-
-        const periods = [
-            { key: 'today', label: 'I dag' },
-            { key: 'yesterday', label: 'I går' },
-            { key: 'thisWeek', label: 'Uken' },
-            { key: 'all', label: 'Alltid' }
-        ];
-
-        function getFriendlyDate(dateStr) {
-            const d = new Date(dateStr);
-            const today = new Date();
-            const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
-            if (d.toDateString() === today.toDateString()) return "I dag";
-            if (d.toDateString() === yesterday.toDateString()) return "I går";
-            return d.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
-        }
-
-        function renderAll() {
-            renderPeriodButtons();
-            renderStats();
-            renderTodayHistory();
-            renderAdminLists();
-            const sel = document.getElementById('userPerforming');
-            const currentVal = sel.value;
-            sel.innerHTML = '<option value="">Velg navn...</option>' + members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-            sel.value = currentVal;
-        }
-
-        function renderPeriodButtons() {
-            document.getElementById('periodButtons').innerHTML = periods.map(p => `
-                <button onclick="activePeriod='${p.key}'; renderAll()" class="px-3 py-1.5 rounded-full font-bold ${activePeriod === p.key ? 'bg-taskBlue text-white' : 'bg-white/5 text-textSub'}">
-                    ${p.label}
-                </button>
-            `).join('');
-        }
-
-        function renderStats() {
-            const statusEl = document.getElementById('leadStatus');
-            if (!members.length) { statusEl.innerText = "Legg til medlemmer!"; return; }
-            statusEl.innerText = "Oversikt";
-            
-            const legendEl = document.getElementById('chartLegend');
-            legendEl.innerHTML = members.map(m => `<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:${m.color}"></span>${m.name.split(' ')[0]}</div>`).join('');
-
-            const ctx = document.getElementById('pointsChart').getContext('2d');
-            if (myChart) myChart.destroy();
-            myChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    datasets: [{
-                        data: members.map(m => m.points || 1),
-                        backgroundColor: members.map(m => m.color),
-                        borderWidth: 0
-                    }]
-                },
-                options: { cutout: '80%', plugins: { legend: { display: false } } }
-            });
-        }
-
-        // GRUPPERT HISTORIKK
-        function renderTodayHistory() {
-            const hEl = document.getElementById('todayHistory');
-            if (!history.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm opacity-50">Ingen bidrag ennå.</p>`; return; }
-
-            let html = "";
-            let lastHeader = "";
-
-            history.forEach(h => {
-                const m = members.find(mem => mem.id === h.userId);
-                if(!m) return;
-
-                const currentHeader = getFriendlyDate(h.date);
-                if (currentHeader !== lastHeader) {
-                    html += `<h3 class="text-xs font-bold text-textSub uppercase tracking-widest mt-8 mb-4 ml-1">${currentHeader}</h3>`;
-                    lastHeader = currentHeader;
-                }
-
-                html += `
-                <div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id}, 'history')">
-                    <div class="swipe-actions">
-                        <button class="action-delete" onclick="deleteHistory(${h.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
-                    </div>
-                    <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl border border-white/5">
-                        <button class="desktop-menu-btn" onclick="showContextMenu(event, ${h.id}, 'history', true)"><i class="fas fa-ellipsis-v"></i></button>
-                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs" style="background:${m.color}">${m.name.substring(0,2).toUpperCase()}</span>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
-                            <p class="text-[10px] text-textSub uppercase">+${h.points} poeng</p>
-                        </div>
-                    </div>
-                </div>`;
-            });
-            hEl.innerHTML = html;
-            initSwipeHandlers();
-        }
-
-        // ADMIN LISTER MED SWIPE/MENU
-        function renderAdminLists() {
-            const taskList = document.getElementById('manageTasksList');
-            taskList.innerHTML = taskTypes.map(t => `
-                <div class="admin-swipe-item rounded-xl" data-id="${t.id}" oncontextmenu="showContextMenu(event, ${t.id}, 'task')">
-                    <div class="swipe-actions">
-                        <button class="action-edit" onclick="openEditTaskModal(${t.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
-                        <button class="action-delete" onclick="deleteTask(${t.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
-                    </div>
-                    <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
-                        <button class="desktop-menu-btn" onclick="showContextMenu(event, ${t.id}, 'task', true)"><i class="fas fa-ellipsis-v"></i></button>
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-star text-taskBlue"></i>
-                            <span class="font-medium text-sm">${t.name}</span>
-                        </div>
-                        <span class="text-xs text-textSub">${t.points}p</span>
-                    </div>
-                </div>
-            `).join('');
-
-            document.getElementById('manageMembersList').innerHTML = members.map(m => `
-                <div class="flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
-                    <span class="text-sm font-bold">${m.name}</span>
-                    <button onclick="deleteMember(${m.id})" class="text-red-500/50"><i class="fas fa-trash"></i></button>
-                </div>
-            `).join('');
-            initSwipeHandlers();
-        }
-
-        // REDIGERINGS-LOGIKK
-        function openEditTaskModal(id) {
-            closeAllSwipes();
-            editingTaskId = id;
-            const t = taskTypes.find(x => x.id === id);
-            document.getElementById('editTaskName').value = t.name;
-            document.getElementById('editTaskPoints').value = t.points;
-            document.getElementById('editTaskModal').classList.remove('hidden');
-        }
-
-        function closeEditTaskModal() {
-            document.getElementById('editTaskModal').classList.add('hidden');
-            editingTaskId = null;
-        }
-
-        function executeTaskEdit() {
-            const newName = document.getElementById('editTaskName').value;
-            const newPoints = parseInt(document.getElementById('editTaskPoints').value);
-            if(!newName || isNaN(newPoints)) return;
-            const t = taskTypes.find(x => x.id === editingTaskId);
-            t.name = newName;
-            t.points = newPoints;
-            sync();
-            closeEditTaskModal();
-        }
-
-        // SWIPE & CONTEXT MENU (Beholdt nøyaktig som før)
-        let activeSwipeItem = null;
-        function initSwipeHandlers() {
-            const items = document.querySelectorAll('.swipe-item, .admin-swipe-item');
-            items.forEach(item => {
-                let startX = 0, currentX = 0, isSwiping = false;
-                const content = item.querySelector('.swipe-content');
-                const actions = item.querySelector('.swipe-actions');
-
-                item.addEventListener('touchstart', e => {
-                    if (activeSwipeItem && activeSwipeItem !== item) closeAllSwipes();
-                    startX = e.touches[0].clientX;
-                    isSwiping = true;
-                    actions.style.visibility = 'visible';
-                }, {passive: true});
-
-                item.addEventListener('touchmove', e => {
-                    if (!isSwiping) return;
-                    currentX = e.touches[0].clientX;
-                    const diff = startX - currentX;
-                    if (diff > 0) content.style.transform = `translateX(-${Math.min(diff, 144)}px)`;
-                }, {passive: true});
-
-                item.addEventListener('touchend', () => {
-                    isSwiping = false;
-                    const diff = startX - currentX;
-                    if (diff > 70) {
-                        const width = actions.querySelectorAll('button').length * 72;
-                        content.style.transform = `translateX(-${width}px)`;
-                        activeSwipeItem = item;
-                    } else {
-                        content.style.transform = 'translateX(0)';
-                        activeSwipeItem = null;
-                    }
-                });
-            });
-        }
-
-        function closeAllSwipes() {
-            document.querySelectorAll('.swipe-content').forEach(c => c.style.transform = 'translateX(0)');
-            activeSwipeItem = null;
-        }
-
-        function showContextMenu(e, id, type, fromBtn = false) {
-            e.preventDefault();
-            const existing = document.querySelector('.desktop-dropdown');
-            if (existing) existing.remove();
-
-            const menu = document.createElement('div');
-            menu.className = 'desktop-dropdown';
-            
-            if (type === 'history') {
-                menu.innerHTML = `<button onclick="deleteHistory(${id})"><i class="fas fa-trash"></i> Slett bidrag</button>`;
-            } else {
-                menu.innerHTML = `
-                    <button onclick="openEditTaskModal(${id})"><i class="fas fa-pen"></i> Endre oppgave</button>
-                    <button onclick="deleteTask(${id})" class="delete-option"><i class="fas fa-trash"></i> Slett</button>`;
-            }
-
-            document.body.appendChild(menu);
-            const x = fromBtn ? e.target.getBoundingClientRect().left - 130 : e.clientX;
-            const y = fromBtn ? e.target.getBoundingClientRect().bottom + 5 : e.clientY;
-            menu.style.left = x + 'px';
-            menu.style.top = y + 'px';
-
-            setTimeout(() => {
-                window.onclick = () => { menu.remove(); window.onclick = null; };
-            }, 0);
-        }
-
-        // HJELPEFUNKSJONER
-        function showTaskSelection() {
-            document.getElementById('taskSelectionScreen').classList.remove('hidden');
-            document.getElementById('mainScreen').classList.add('hidden');
-            selectedTasksOnScreen = [];
-            renderTaskBubbles();
-        }
-        function hideTaskSelection() {
-            document.getElementById('taskSelectionScreen').classList.add('hidden');
-            document.getElementById('mainScreen').classList.remove('hidden');
-        }
-        function renderTaskBubbles() {
-            document.getElementById('taskBubbleContainer').innerHTML = taskTypes.map(t => {
-                const sel = selectedTasksOnScreen.includes(t.id);
-                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm border border-white/5 ${sel ? 'bg-taskCyan text-appBg font-bold' : 'bg-cardBg text-textMain'}">${t.name} (${t.points}p)</button>`;
-            }).join('');
-        }
-        function toggleT(id) {
-            selectedTasksOnScreen = selectedTasksOnScreen.includes(id) ? selectedTasksOnScreen.filter(i => i !== id) : [...selectedTasksOnScreen, id];
-            renderTaskBubbles();
-        }
-        function saveRegisteredTasks() {
-            const uId = parseInt(document.getElementById('userPerforming').value);
-            if(!uId || !selectedTasksOnScreen.length) return alert("Velg navn og oppgaver!");
-            const tasks = selectedTasksOnScreen.map(tid => taskTypes.find(tt => tt.id === tid).name);
-            const pts = selectedTasksOnScreen.reduce((s, tid) => s + taskTypes.find(tt => tt.id === tid).points, 0);
-            history.unshift({ id: Date.now(), userId: uId, tasks, points: pts, date: new Date().toISOString() });
-            sync(); hideTaskSelection();
-        }
-        function addTaskType() {
-            const name = document.getElementById('newTaskName').value;
-            const points = parseInt(document.getElementById('newTaskPoints').value);
-            if(!name || isNaN(points)) return;
-            taskTypes.push({ id: Date.now(), name, points });
-            document.getElementById('newTaskName').value = "";
-            document.getElementById('newTaskPoints').value = "";
-            sync();
-        }
-        function deleteTask(id) { taskTypes = taskTypes.filter(t => t.id !== id); sync(); }
-        function deleteHistory(id) { history = history.filter(h => h.id !== id); sync(); }
-        function addMember() {
-            const name = document.getElementById('newMemberName').value;
-            if(!name) return;
-            members.push({ id: Date.now(), name, points: 0, color: '#'+Math.floor(Math.random()*16777215).toString(16) });
-            document.getElementById('newMemberName').value = "";
-            sync();
-        }
-        function deleteMember(id) { members = members.filter(m => m.id !== id); sync(); }
-        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
-        function closeAllModals() { document.querySelectorAll('[id$="Modal"]').forEach(m => m.classList.add('hidden')); }
-    </script>
-</body>
-</html>
+                <option
