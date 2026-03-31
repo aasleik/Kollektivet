@@ -421,7 +421,7 @@
             const _today = new Date();
             const _yesterday = new Date(_today.getTime() - 86400000);
 
-            hEl.innerHTML = dateGroupOrder.map(dk => {
+            const rendered = dateGroupOrder.map(dk => {
                 const grp = dateGroups[dk];
                 const gd = grp.date;
                 let dlabel;
@@ -430,7 +430,7 @@
                 else { dlabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' }); dlabel = dlabel.charAt(0).toUpperCase() + dlabel.slice(1); }
 
                 const itemsHtml = grp.items.map(h => {
-                    const m = members.find(mem => mem.id === h.userId);
+                    const m = members.find(mem => String(mem.id) === String(h.userId));
                     if(!m) return "";
                     const init = m.name.substring(0,2).toUpperCase();
                     const taskCount = h.tasks.length;
@@ -451,8 +451,11 @@
                 </div>`;
                 }).join('');
 
+                if (!itemsHtml.trim()) return '';
                 return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
             }).join('');
+
+            hEl.innerHTML = rendered.trim() || `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`;
             initSwipeHandlers();
         }
 
@@ -691,6 +694,7 @@
                 </div>`;
                 }).join('');
 
+                if (!itemsHtml.trim()) return '';
                 return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
             }).join('');
             initSwipeHandlers();
