@@ -107,7 +107,7 @@
                 <h3 class="text-textSub text-xs font-bold uppercase tracking-widest mb-4">Medlemmer</h3>
                 <div id="adminMemberList" class="space-y-2 mb-4"></div>
                 <div class="flex gap-2">
-                    <input type="text" id="newMemberName" placeholder="Navn" class="flex-1 bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm">
+                    <input type="text" id="newMemberName" placeholder="Navn" maxlength="20" class="flex-1 bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm text-white">
                     <button onclick="addMember()" class="bg-accent-blue text-white px-4 py-2 rounded-lg"><i class="fas fa-plus"></i></button>
                 </div>
             </section>
@@ -115,9 +115,9 @@
                 <h3 class="text-textSub text-xs font-bold uppercase tracking-widest mb-4">Oppgavetyper</h3>
                 <div id="adminTaskList" class="space-y-2 mb-4"></div>
                 <div class="space-y-2">
-                    <input type="text" id="newTaskName" placeholder="Oppgave" class="w-full bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm">
+                    <input type="text" id="newTaskName" placeholder="Oppgave" maxlength="25" class="w-full bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm text-white">
                     <div class="flex gap-2">
-                        <input type="number" id="newTaskPoints" placeholder="Poeng" class="flex-1 bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm">
+                        <input type="number" id="newTaskPoints" placeholder="Poeng" class="flex-1 bg-card-bg border border-[#30363D] rounded-lg px-4 py-2 text-sm text-white">
                         <button onclick="addTaskType()" class="bg-accent-blue text-white px-6 py-2 rounded-lg font-bold">Legg til</button>
                     </div>
                 </div>
@@ -129,7 +129,7 @@
         <div class="w-full max-w-sm bg-[#161B22] border border-[#30363D] rounded-2xl p-6 space-y-4">
             <h3 id="renameModalTitle" class="text-lg font-bold">Endre</h3>
             <div class="space-y-3">
-                <input type="text" id="renameInput" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3 text-white">
+                <input type="text" id="renameInput" maxlength="25" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3 text-white">
                 <div id="renamePointsRow" class="hidden">
                     <input type="number" id="renamePointsInput" class="w-full bg-[#0A0E17] border border-[#30363D] rounded-lg p-3 text-white">
                 </div>
@@ -150,16 +150,25 @@
         let renameCallback = null;
         let chartInstance = null;
 
+        // Validering: Fjerner tegn som kan lage kluss i DB-baner
+        function sanitize(str) { return str.replace(/[.#$[\]]/g, ""); }
         function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
 
         const firebaseConfig = { databaseURL: "https://kollektivet-b26a6-default-rtdb.europe-west1.firebasedatabase.app/" };
 
         function initApp() {
-            const key = document.getElementById('dbKeyInput').value.trim().toLowerCase();
+            const keyRaw = document.getElementById('dbKeyInput').value.trim().toLowerCase();
+            const key = sanitize(keyRaw);
             if (!key) return;
             localStorage.setItem('kollektiv_db_key', key);
             document.getElementById('setupScreen').classList.add('hidden');
-            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                // PUNKT 3: Fravær av internett (Offline-modus)
+                firebase.database().enablePersistence().catch(err => console.warn("Offline-modus utilgjengelig", err));
+            }
+
             db = firebase.database().ref(key);
             db.on('value', (s) => {
                 const d = s.val() || {};
@@ -206,8 +215,8 @@
                 const count = selectedTasks.filter(id => id === t.id).length;
                 return `<div onclick="toggleTask('${t.id}')" class="card p-4 flex flex-col items-center relative active:scale-95 transition-transform ${count > 0 ? 'border-accent-blue ring-1 ring-accent-blue' : ''}">
                     ${count > 0 ? `<div class="absolute -top-2 -right-2 bg-accent-blue text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">${count}</div>` : ''}
-                    <span class="text-sm font-medium">${t.name}</span>
-                    <span class="text-[10px] text-textSub font-bold px-2 py-1 bg-[#0A0E17] rounded-full mt-2">${t.points} poeng</span>
+                    <span class="text-sm font-medium text-center">${t.name}</span>
+                    <span class="text-[10px] text-textSub font-bold px-2 py-1 bg-[#0A0E17] rounded-full mt-2">${t.points} p</span>
                 </div>`;
             }).join('');
         }
@@ -229,7 +238,7 @@
             if (!m || selectedTasks.length === 0) return;
             
             const entry = {
-                id: generateId(), userId: uid, userName: m.name, points: 0, // Regnes ut i recalculate
+                id: generateId(), userId: uid, userName: m.name, points: 0,
                 tasks: selectedTasks.map(id => taskTypes.find(t => t.id === id).name.toLowerCase()),
                 date: new Date().toISOString()
             };
@@ -291,19 +300,21 @@
             const container = document.getElementById('historyList');
             if (history.length === 0) { container.innerHTML = '<div class="text-center py-20 text-textSub">Ingen historikk</div>'; return; }
             
-            // Punkt 4: Begrens visning til de 50 nyeste for ytelse
+            // PUNKT 5: Dato-sortering etter endring (Alltid nyeste øverst)
+            history.sort((a, b) => new Date(b.date) - new Date(a.date));
+
             const limitedHistory = history.slice(0, 50);
             document.getElementById('historyLimitText').classList.toggle('hidden', history.length <= 50);
 
             container.innerHTML = limitedHistory.map(h => {
                 const m = members.find(mem => mem.id === h.userId);
-                const taskDisplay = h.tasks ? h.tasks.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ') : 'Ingen oppgaver';
+                const taskDisplay = h.tasks ? h.tasks.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ') : 'Slettede oppgaver';
                 return `<div class="swipe-container card">
                     <div id="swipe-${h.id}" class="swipe-content p-4 flex justify-between items-center">
                         <div class="truncate mr-4">
                             <div class="flex items-center gap-2">
                                 <span class="font-bold">${m ? m.name : 'Slettet'}</span>
-                                <span class="text-[10px] text-textSub">${new Date(h.date).toLocaleTimeString('no-NO', {hour:'2-digit', minute:'2-digit'})}</span>
+                                <span class="text-[10px] text-textSub">${new Date(h.date).toLocaleDateString('no-NO')} ${new Date(h.date).toLocaleTimeString('no-NO', {hour:'2-digit', minute:'2-digit'})}</span>
                             </div>
                             <p class="text-xs text-textSub truncate">${taskDisplay}</p>
                         </div>
@@ -354,17 +365,28 @@
         }
 
         function addMember() {
-            const n = document.getElementById('newMemberName').value.trim();
+            const n = sanitize(document.getElementById('newMemberName').value.trim());
             if (n) { members.push({ id: generateId(), name: n, points: 0 }); sync(); document.getElementById('newMemberName').value = ''; }
         }
 
         function addTaskType() {
-            const n = document.getElementById('newTaskName').value.trim();
+            const n = sanitize(document.getElementById('newTaskName').value.trim());
             const p = parseInt(document.getElementById('newTaskPoints').value);
-            if (n && !isNaN(p)) { taskTypes.push({ id: generateId(), name: n, points: p }); sync(); document.getElementById('newTaskName').value = ''; document.getElementById('newTaskPoints').value = ''; }
+            
+            // PUNKT 2: Duplikate oppgavenavn (Logisk kollisjon)
+            if (taskTypes.some(t => t.name.toLowerCase() === n.toLowerCase())) {
+                alert("Denne oppgaven finnes allerede!");
+                return;
+            }
+
+            if (n && !isNaN(p)) { 
+                taskTypes.push({ id: generateId(), name: n, points: p }); 
+                sync(); 
+                document.getElementById('newTaskName').value = ''; 
+                document.getElementById('newTaskPoints').value = ''; 
+            }
         }
 
-        // Punkt 1: Slett også all tilhørende historikk
         function deleteMember(id) { 
             if(confirm('Slette medlem? Dette vil også fjerne all historikk tilknyttet denne personen.')) { 
                 history = history.filter(h => h.userId !== id);
@@ -376,7 +398,7 @@
 
         function deleteTaskType(id) {
             const t = taskTypes.find(tt => tt.id === id);
-            if (t && confirm(`Slette "${t.name}"? Dette vil fjerne oppgaven fra all historikk og rekalkulere poeng.`)) {
+            if (t && confirm(`Slette "${t.name}"?`)) {
                 const nameLower = t.name.toLowerCase();
                 history.forEach(h => { if(h.tasks) h.tasks = h.tasks.filter(tn => tn !== nameLower); });
                 taskTypes = taskTypes.filter(tt => tt.id !== id);
@@ -389,12 +411,19 @@
             const t = taskTypes.find(tt => tt.id === id);
             if (!t) return;
             openRenameModal('Endre oppgave', t.name, (newName, newPoints) => {
-                // Punkt 3: Hindre tomt navn
-                if (!newName.trim()) return;
+                const cleanName = sanitize(newName.trim());
+                if (!cleanName) return;
+                
+                // Sjekk duplikat ved endring (unntatt seg selv)
+                if (taskTypes.some(tt => tt.id !== id && tt.name.toLowerCase() === cleanName.toLowerCase())) {
+                    alert("Navnet er allerede i bruk!");
+                    return;
+                }
+
                 const oldNameLower = t.name.toLowerCase();
-                const newNameLower = newName.toLowerCase().trim();
+                const newNameLower = cleanName.toLowerCase();
                 history.forEach(h => { if(h.tasks) h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn); });
-                t.name = newName.trim();
+                t.name = cleanName;
                 if (newPoints !== undefined && !isNaN(newPoints)) t.points = newPoints;
                 recalculateAllScores();
                 sync();
@@ -404,8 +433,9 @@
         function startRenameMember(id) {
             const m = members.find(mem => mem.id === id);
             if (m) openRenameModal('Endre navn', m.name, (n) => { 
-                if(!n.trim()) return;
-                m.name = n.trim(); 
+                const cleanName = sanitize(n.trim());
+                if(!cleanName) return;
+                m.name = cleanName; 
                 sync(); 
             });
         }
