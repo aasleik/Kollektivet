@@ -270,27 +270,30 @@
         
         // LYD-FUNKSJON TILPASSET MOBIL
         // Flytt denne ut av funksjonen så vi gjenbruker samme objekt
+// Disse må ligge utenfor funksjonen
 let globalAudio = null;
+let isPlaying = false; 
 
 function playIntroSound(durationSeconds = 7) {
+    // SPERRE: Hvis den allerede spiller, avslutt funksjonen her
+    if (isPlaying) return;
+    
     const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3';
     
-    // Hvis lydobjektet ikke finnes, lag det. Hvis det finnes, stopp og nullstill det.
     if (!globalAudio) {
         globalAudio = new Audio(audioUrl);
-    } else {
-        globalAudio.pause();
-        globalAudio.currentTime = 0;
     }
-    
+
+    // Nå markerer vi at vi har startet
+    isPlaying = true;
+    globalAudio.currentTime = 0;
     globalAudio.volume = 0;
 
-    // Spill av
     globalAudio.play().then(() => {
         // Fade inn
         let fadeIn = setInterval(() => {
             if (globalAudio.volume < 0.3) {
-                globalAudio.volume = Math.min(0.9, globalAudio.volume + 0.1);
+                globalAudio.volume = Math.min(0.9, globalAudio.volume + 0.05);
             } else {
                 clearInterval(fadeIn);
             }
@@ -301,16 +304,21 @@ function playIntroSound(durationSeconds = 7) {
             let fadeOut = setInterval(() => {
                 if (globalAudio && globalAudio.volume > 0.05) {
                     globalAudio.volume = Math.max(0, globalAudio.volume - 0.05);
-                } else if (globalAudio) {
-                    globalAudio.pause();
-                    globalAudio.currentTime = 0;
+                } else {
                     clearInterval(fadeOut);
+                    if (globalAudio) {
+                        globalAudio.pause();
+                        globalAudio.currentTime = 0;
+                    }
+                    // VIKTIG: Åpne sperren igjen når lyden er helt ferdig
+                    isPlaying = false; 
                 }
             }, 100);
         }, durationSeconds * 1000);
         
     }).catch(e => {
-        console.error("Kunne ikke spille lyd:", e);
+        console.error("Lyd blokkert:", e);
+        isPlaying = false; // Nullstill hvis det skjer en feil
     });
 }
 
