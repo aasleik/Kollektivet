@@ -235,11 +235,7 @@
                 <i class="fas fa-pen"></i>
             </div>
             <h3 id="renameModalTitle" class="text-xl font-bold mb-4 text-center">Endre navn</h3>
-            <input type="text" id="renameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm mb-3" placeholder="Nytt navn...">
-            <div id="renamePointsWrapper" class="hidden mb-6">
-                <input type="number" id="renamePointsInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Antall poeng...">
-            </div>
-            <div id="renamePointsSpacerWrapper" class="mb-6 hidden-when-points"></div>
+            <input type="text" id="renameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm mb-6" placeholder="Nytt navn...">
             <div class="flex gap-3">
                 <button onclick="closeRenameModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold">Avbryt</button>
                 <button onclick="executeRename()" class="flex-1 py-4 rounded-2xl bg-accent text-white font-bold shadow-lg shadow-accent/20">Lagre</button>
@@ -410,53 +406,25 @@
 
             if (!log.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`; return; }
 
-            // Group by date
-            const groups = {};
-            const groupOrder = [];
-            log.forEach(h => {
-                const d = new Date(h.date);
-                const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                if (!groups[key]) { groups[key] = { date: d, items: [] }; groupOrder.push(key); }
-                groups[key].items.push(h);
-            });
-
-            const todayDate = new Date();
-            const yesterdayDate = new Date(todayDate.getTime() - 86400000);
-
-            hEl.innerHTML = groupOrder.map(key => {
-                const g = groups[key];
-                const gd = g.date;
-                let dateLabel;
-                if (gd.toDateString() === todayDate.toDateString()) dateLabel = 'I dag';
-                else if (gd.toDateString() === yesterdayDate.toDateString()) dateLabel = 'I går';
-                else dateLabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
-                dateLabel = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
-
-                const itemsHtml = g.items.map(h => {
-                    const m = members.find(mem => mem.id === h.userId);
-                    if(!m) return "";
-                    const init = m.name.substring(0,2).toUpperCase();
-                    const taskCount = h.tasks.length;
-                    const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
-                    return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
-                        <div class="swipe-actions">
-                            <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
-                            <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+            hEl.innerHTML = log.map(h => {
+                const m = members.find(mem => mem.id === h.userId);
+                if(!m) return "";
+                const init = m.name.substring(0,2).toUpperCase();
+                const taskCount = h.tasks.length;
+                const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
+                return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
+                    <div class="swipe-actions">
+                        <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
+                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
+                        <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
+                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm leading-tight font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                            <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel}</p>
                         </div>
-                        <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
-                            <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
-                            <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm leading-tight font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
-                                <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel}</p>
-                            </div>
-                        </div>
-                    </div>`;
-                }).join('');
-
-                return `<div class="mb-4">
-                    <p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dateLabel}</p>
-                    <div class="space-y-2">${itemsHtml}</div>
+                    </div>
                 </div>`;
             }).join('');
             initSwipeHandlers();
@@ -655,52 +623,25 @@
                 return;
             }
 
-            // Group by date
-            const groups = {};
-            const groupOrder = [];
-            log.forEach(h => {
-                const d = new Date(h.date);
-                const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                if (!groups[key]) { groups[key] = { date: d, items: [] }; groupOrder.push(key); }
-                groups[key].items.push(h);
-            });
-
-            const todayDate = new Date();
-            const yesterdayDate = new Date(todayDate.getTime() - 86400000);
-
-            logEl.innerHTML = groupOrder.map(key => {
-                const g = groups[key];
-                const gd = g.date;
-                let dateLabel;
-                if (gd.toDateString() === todayDate.toDateString()) dateLabel = 'I dag';
-                else if (gd.toDateString() === yesterdayDate.toDateString()) dateLabel = 'I går';
-                else dateLabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
-                dateLabel = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
-
-                const itemsHtml = g.items.map(h => {
-                    const date = new Date(h.date);
-                    const timeStr = date.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-                    const taskCount = h.tasks.length;
-                    const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
-                    return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
-                        <div class="swipe-actions">
-                            <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
-                            <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+            logEl.innerHTML = log.map(h => {
+                const date = new Date(h.date);
+                const timeStr = date.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+                const dateStr = date.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
+                const taskCount = h.tasks.length;
+                const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
+                return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
+                    <div class="swipe-actions">
+                        <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
+                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex gap-4 items-center p-3 bg-cardBg rounded-2xl border border-white/5">
+                        <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
+                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm leading-tight font-medium"><span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                            <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel} · ${dateStr} ${timeStr}</p>
                         </div>
-                        <div class="swipe-content flex gap-4 items-center p-3 bg-cardBg rounded-2xl border border-white/5">
-                            <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
-                            <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm leading-tight font-medium"><span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
-                                <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel} · ${timeStr}</p>
-                            </div>
-                        </div>
-                    </div>`;
-                }).join('');
-
-                return `<div class="mb-4">
-                    <p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dateLabel}</p>
-                    <div class="space-y-2">${itemsHtml}</div>
+                    </div>
                 </div>`;
             }).join('');
             initSwipeHandlers();
@@ -988,24 +929,14 @@
         // Rename modal state
         let renameCallback = null;
 
-        function openRenameModal(title, currentValue, callback, currentPoints) {
+        function openRenameModal(title, currentValue, callback) {
             renameCallback = callback;
             document.getElementById('renameModalTitle').innerText = title;
             const input = document.getElementById('renameInput');
             input.value = currentValue;
-            const pointsWrapper = document.getElementById('renamePointsWrapper');
-            const pointsInput = document.getElementById('renamePointsInput');
-            if (currentPoints !== undefined) {
-                pointsWrapper.classList.remove('hidden');
-                pointsInput.value = currentPoints;
-            } else {
-                pointsWrapper.classList.add('hidden');
-                pointsInput.value = '';
-            }
             document.getElementById('renameModal').classList.remove('hidden');
             setTimeout(() => input.focus(), 100);
             input.onkeydown = function(e) { if (e.key === 'Enter') executeRename(); };
-            pointsInput.onkeydown = function(e) { if (e.key === 'Enter') executeRename(); };
         }
 
         function closeRenameModal() {
@@ -1015,10 +946,8 @@
 
         function executeRename() {
             const newName = document.getElementById('renameInput').value.trim();
-            const pointsInput = document.getElementById('renamePointsInput');
-            const newPoints = pointsInput.value !== '' ? parseInt(pointsInput.value) : undefined;
             if (newName && renameCallback) {
-                renameCallback(newName, newPoints);
+                renameCallback(newName);
             }
             closeRenameModal();
         }
@@ -1041,8 +970,7 @@
             closeAllAdminSwipes();
             const t = taskTypes.find(tt => tt.id === id);
             if (!t) return;
-            openRenameModal('Endre oppgave', t.name, function(newName, newPoints) {
-                let changed = false;
+            openRenameModal('Endre oppgavenavn', t.name, function(newName) {
                 if (newName !== t.name) {
                     const oldNameLower = t.name.toLowerCase();
                     const newNameLower = newName.toLowerCase();
@@ -1051,14 +979,9 @@
                     history.forEach(h => {
                         h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn);
                     });
-                    changed = true;
+                    sync();
                 }
-                if (newPoints !== undefined && !isNaN(newPoints) && newPoints > 0 && newPoints !== t.points) {
-                    t.points = newPoints;
-                    changed = true;
-                }
-                if (changed) sync();
-            }, t.points);
+            });
         }
 
         // Mini calendar for changing contribution date
