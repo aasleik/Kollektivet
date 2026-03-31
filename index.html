@@ -296,7 +296,29 @@
 
         function sync() { db.ref('/').set({ members, taskTypes, history }); }
 
-        const allColors = ['#EF4444', '#F59E0B', '#22C55E', '#3B82F6', '#A855F7', '#EC4899', '#06B6D4', '#F97316', '#6366F1', '#10B981', '#E11D48', '#FACC15', '#14B8A6', '#8B5CF6', '#FB7185', '#84CC16', '#0EA5E9', '#C084FC', '#F472B6', '#34D399'];
+        // NYE FARGER: Valgt for maksimal kontrast i diagrammer
+        const allColors = [
+            '#F87171', // Red
+            '#60A5FA', // Blue
+            '#34D399', // Green
+            '#FBBF24', // Yellow/Amber
+            '#A78BFA', // Purple
+            '#F472B6', // Pink
+            '#FB923C', // Orange
+            '#22D3EE', // Cyan
+            '#818CF8', // Indigo
+            '#A3E635', // Lime
+            '#E879F9', // Fuchsia
+            '#2DD4BF', // Teal
+            '#FCA5A5', // Soft Red
+            '#93C5FD', // Soft Blue
+            '#6EE7B7', // Soft Green
+            '#FDE047', // Soft Yellow
+            '#C4B5FD', // Soft Purple
+            '#F9A8D4', // Soft Pink
+            '#67E8F9', // Soft Cyan
+            '#BEF264'  // Soft Lime
+        ];
 
         function fixDuplicateColors() {
             const usedColors = new Set();
