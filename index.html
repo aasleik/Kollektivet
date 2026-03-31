@@ -430,7 +430,7 @@
                 else { dlabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' }); dlabel = dlabel.charAt(0).toUpperCase() + dlabel.slice(1); }
 
                 const itemsHtml = grp.items.map(h => {
-                    const m = members.find(mem => mem.id === h.userId);
+                    const m = members.find(mem => String(mem.id) === String(h.userId));
                     if(!m) return "";
                     const init = m.name.substring(0,2).toUpperCase();
                     const taskCount = h.tasks.length;
