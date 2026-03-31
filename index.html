@@ -1007,25 +1007,8 @@
                     changed = true;
                 }
                 if (newPoints !== undefined && !isNaN(newPoints) && newPoints > 0 && newPoints !== t.points) {
-    const oldPoints = t.points;
-    const oldNameLower = t.name.toLowerCase();
-
-    history.forEach(h => {
-        let count = h.tasks.filter(taskName => taskName === oldNameLower).length;
-        if (count > 0) {
-            const diff = (newPoints - oldPoints) * count;
-            h.points += diff;
-
-            const member = members.find(m => m.id === h.userId);
-            if (member) {
-                member.points += diff;
-            }
-        }
-    });
-
-    t.points = newPoints;
-    changed = true;
-}
+                    t.points = newPoints;
+                    changed = true;
                 }
                 if (changed) sync();
             }, true, t.points);
