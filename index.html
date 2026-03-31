@@ -50,7 +50,8 @@
         .swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease, padding-left 0.15s; }
         .swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
         .swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
-        .swipe-item .swipe-actions .action-edit { background: #3B82F6; border-radius: 0; }
+        .swipe-item .swipe-actions .action-date { background: #3B82F6; border-radius: 0; }
+        .swipe-item .swipe-actions .action-edit { background: #7C3AED; border-radius: 0; }
         .swipe-item .swipe-actions .action-delete { background: #EF4444; border-radius: 0; }
         .mini-calendar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .mini-calendar { background: #151C2C; border-radius: 20px; padding: 20px; width: 100%; max-width: 320px; border: 1px solid rgba(255,255,255,0.1); }
@@ -134,18 +135,18 @@
 
         <div class="relative mb-6">
             <label class="text-xs text-textSub mb-2 block ml-1 uppercase font-bold">Hvem er du?</label>
-            <select id="userPerforming" class="w-full bg-cardBg p-4 rounded-2xl text-textMain outline-none border border-white/10 appearance-none shadow-inner disabled:opacity-50 disabled:cursor-not-allowed">
+            <select id="userPerforming" class="w-full bg-cardBg p-4 rounded-2xl text-textMain outline-none border border-white/10 appearance-none shadow-inner disabled:opacity-50">
                 <option value="">Velg navn...</option>
             </select>
             <i class="fas fa-chevron-down absolute right-4 bottom-5 text-textSub pointer-events-none"></i>
         </div>
 
-        <h2 class="text-2xl sm:text-4xl font-extrabold mb-6 sm:mb-8 leading-tight">Hva har du gjort?</h2>
+        <h2 class="text-2xl sm:text-4xl font-extrabold mb-6 sm:mb-8 leading-tight">Hva har du gjort i dag?</h2>
         
         <div id="taskBubbleContainer" class="flex flex-wrap gap-3 pb-32">
             </div>
 
-        <button id="saveBtn" onclick="saveRegisteredTasks()" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10 active:scale-95 transition-transform">
+        <button onclick="saveRegisteredTasks()" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10 active:scale-95 transition-transform">
             Lagre
         </button>
     </div>
@@ -255,29 +256,50 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        const defaultTaskTypes = [
+            { id: 1, name: "Redd sengen", points: 10, icon: 'bed' },
+            { id: 2, name: "Laget kaffe", points: 5, icon: 'mug-hot' },
+            { id: 3, name: "Tatt oppvasken", points: 15, icon: 'utensils' },
+            { id: 4, name: "Gått med søpla", points: 20, icon: 'trash' },
+            { id: 5, name: "Vasket gulvet", points: 50, icon: 'broom' }
+        ];
+
         let members = [], taskTypes = [], history = [], myChart, selectedTasksOnScreen = [];
-        let activePeriod = 'today';
-        let currentEditingId = null;
+        let activePeriod = 'today', currentEditingId = null;
 
         db.ref('/').on('value', (snapshot) => {
-            const data = snapshot.val() || {};
+            const raw = snapshot.val();
+            const isFirstLoad = raw === null;
+            const data = raw || {};
             members = data.members || [];
-            taskTypes = data.taskTypes || [];
+            taskTypes = isFirstLoad ? defaultTaskTypes : (data.taskTypes || []);
             history = data.history || [];
+            fixDuplicateColors();
             renderAll();
         });
 
         function sync() { db.ref('/').set({ members, taskTypes, history }); }
 
-        const allColors = ['#F87171', '#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F472B6', '#FB923C', '#22D3EE', '#818CF8', '#A3E635', '#E879F9', '#2DD4BF'];
+        const allColors = ['#F87171', '#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F472B6', '#FB923C', '#22D3EE', '#818CF8', '#A3E635', '#E879F9', '#2DD4BF', '#FCA5A5', '#93C5FD', '#6EE7B7', '#FDE047', '#C4B5FD', '#F9A8D4', '#67E8F9', '#BEF264'];
+
+        function fixDuplicateColors() {
+            const usedColors = new Set();
+            let changed = false;
+            members.forEach(m => {
+                if (usedColors.has(m.color) || !m.color) {
+                    const available = allColors.filter(c => !usedColors.has(c));
+                    m.color = available.length > 0 ? available[0] : allColors[Math.floor(Math.random() * allColors.length)];
+                    changed = true;
+                }
+                usedColors.add(m.color);
+            });
+            if (changed) sync();
+        }
 
         const periods = [
-            { key: 'today', label: 'I dag' },
-            { key: 'yesterday', label: 'I går' },
-            { key: 'thisWeek', label: 'Denne uken' },
-            { key: 'lastWeek', label: 'Forrige uke' },
-            { key: 'thisMonth', label: 'Denne måneden' },
-            { key: 'lastMonth', label: 'Forrige måned' },
+            { key: 'today', label: 'I dag' }, { key: 'yesterday', label: 'I går' },
+            { key: 'thisWeek', label: 'Denne uken' }, { key: 'lastWeek', label: 'Forrige uke' },
+            { key: 'thisMonth', label: 'Denne måneden' }, { key: 'lastMonth', label: 'Forrige måned' },
             { key: 'all', label: 'Alltid' }
         ];
 
@@ -307,97 +329,112 @@
 
         function setPeriod(key) { activePeriod = key; renderAll(); }
 
+        function renderPeriodButtons() {
+            document.getElementById('periodButtons').innerHTML = periods.map(p => {
+                const active = p.key === activePeriod;
+                return `<button onclick="setPeriod('${p.key}')" class="px-3 py-1.5 rounded-full font-bold text-center transition-all whitespace-nowrap ${active ? 'bg-taskBlue text-white' : 'bg-white/5 text-textSub hover:bg-white/10'}">${p.label}</button>`;
+            }).join('');
+        }
+
         function renderAll() {
             renderPeriodButtons();
             renderLeaderboardAndChart();
             renderTodayHistory();
             renderAdminLists();
             const sel = document.getElementById('userPerforming');
+            const currentVal = sel.value;
             sel.innerHTML = '<option value="">Hvem er du?</option>' + members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-            const savedUser = localStorage.getItem('kollektiv_user');
-            if (savedUser && !currentEditingId) sel.value = savedUser;
-        }
-
-        function renderPeriodButtons() {
-            document.getElementById('periodButtons').innerHTML = periods.map(p => {
-                const active = p.key === activePeriod;
-                return `<button onclick="setPeriod('${p.key}')" class="px-3 py-1.5 rounded-full font-bold transition-all ${active ? 'bg-taskBlue text-white' : 'bg-white/5 text-textSub'}">${p.label}</button>`;
-            }).join('');
+            if (currentEditingId) {
+                 const h = history.find(item => item.id === currentEditingId);
+                 if(h) sel.value = h.userId;
+            } else {
+                 const savedUser = loadSelectedUser();
+                 if (savedUser && members.find(m => String(m.id) === savedUser)) sel.value = savedUser;
+                 else if (currentVal) sel.value = currentVal;
+            }
         }
 
         function renderLeaderboardAndChart() {
             const statusEl = document.getElementById('leadStatus');
             const legendEl = document.getElementById('chartLegend');
             if (!members.length) { statusEl.innerText = "Legg til medlemmer!"; return; }
-            const membersWithPoints = members.map(m => ({ ...m, periodPoints: getPointsForPeriod(m.id, activePeriod) }));
-            const sorted = [...membersWithPoints].sort((a,b) => b.periodPoints - a.periodPoints);
-            statusEl.innerText = sorted[0].periodPoints > 0 ? `${sorted[0].name.split(' ')[0]} leder!` : "Ingen poeng";
-            legendEl.innerHTML = membersWithPoints.map(m => `<div class="flex items-center gap-2 cursor-pointer" onclick="showMemberHistory(${m.id})"><span class="w-3 h-3 rounded-full" style="background:${m.color}"></span>${m.name.split(' ')[0]}, ${m.periodPoints}p</div>`).join('');
+            const membersWithPeriodPoints = members.map(m => ({ ...m, periodPoints: getPointsForPeriod(m.id, activePeriod) }));
+            const sorted = [...membersWithPeriodPoints].sort((a,b) => b.periodPoints - a.periodPoints);
+            statusEl.innerText = sorted[0].periodPoints > 0 ? `${sorted[0].name.split(' ')[0]} leder!` : "Ingen poeng ennå";
+            legendEl.innerHTML = membersWithPeriodPoints.map(m => `<div class="flex items-center gap-2 cursor-pointer hover:opacity-80 py-1.5 px-2 -mx-2 rounded-lg text-base" onclick="showMemberHistory(${m.id})"><span class="w-3 h-3 rounded-full flex-shrink-0" style="background:${m.color}"></span>${m.name.split(' ')[0]}, ${m.periodPoints}p</div>`).join('');
             const ctx = document.getElementById('pointsChart').getContext('2d');
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'doughnut',
-                data: { datasets: [{ data: membersWithPoints.map(m => m.periodPoints || 1), backgroundColor: membersWithPoints.map(m => m.color), borderWidth: 0 }] },
-                options: { cutout: '80%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                data: {
+                    datasets: [{
+                        data: membersWithPeriodPoints.map(m => m.periodPoints || 1),
+                        backgroundColor: membersWithPeriodPoints.map(m => m.color),
+                        borderWidth: 0, hoverOffset: 0
+                    }]
+                },
+                options: { cutout: '80%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 500 } }
             });
         }
 
         function renderTodayHistory() {
             const hEl = document.getElementById('todayHistory');
+            const headingEl = document.getElementById('logHeading');
+            const periodLabel = periods.find(p => p.key === activePeriod).label;
+            headingEl.innerText = periodLabel;
             const log = filterHistory(activePeriod).sort((a, b) => new Date(b.date) - new Date(a.date));
-            if (!log.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen bidrag registrert.</p>`; return; }
-
-            const dateGroups = {};
+            if (!log.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`; return; }
+            const dateGroups = {}; const dateGroupOrder = [];
             log.forEach(h => {
-                const d = new Date(h.date).toLocaleDateString('no-NO');
-                if (!dateGroups[d]) dateGroups[d] = [];
-                dateGroups[d].push(h);
+                const d = new Date(h.date); const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                if (!dateGroups[dk]) { dateGroups[dk] = { date: d, items: [] }; dateGroupOrder.push(dk); }
+                dateGroups[dk].items.push(h);
             });
-
-            hEl.innerHTML = Object.keys(dateGroups).map(dateKey => {
-                const itemsHtml = dateGroups[dateKey].map(h => {
-                    const m = members.find(mem => mem.id === h.userId);
-                    if(!m) return "";
+            const _today = new Date(), _yesterday = new Date(_today.getTime() - 86400000);
+            hEl.innerHTML = dateGroupOrder.map(dk => {
+                const grp = dateGroups[dk]; const gd = grp.date; let dlabel;
+                if (gd.toDateString() === _today.toDateString()) dlabel = 'I dag';
+                else if (gd.toDateString() === _yesterday.toDateString()) dlabel = 'I går';
+                else { dlabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' }); dlabel = dlabel.charAt(0).toUpperCase() + dlabel.slice(1); }
+                const itemsHtml = grp.items.map(h => {
+                    const m = members.find(mem => String(mem.id) === String(h.userId)); if(!m) return "";
                     return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
                     <div class="swipe-actions">
-                        <button class="action-edit" onclick="startEditEntry(${h.id})"><i class="fas fa-pen"></i><span>Endre bidraget</span></button>
-                        <button class="action-delete" onclick="deleteEntry(${h.id})"><i class="fas fa-trash"></i><span>Slette bidraget</span></button>
+                        <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
+                        <button class="action-edit" onclick="startEditEntry(${h.id})"><i class="fas fa-pen text-base"></i><span>Endre</span></button>
+                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
                     </div>
                     <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
                         <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
-                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs" style="background:${m.color}">${m.name.substring(0,2).toUpperCase()}</span>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
-                            <p class="text-[10px] text-textSub uppercase">+${h.points}p · ${h.tasks.length} oppgaver</p>
+                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${m.name.substring(0,2).toUpperCase()}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm leading-tight font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                            <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${h.tasks.length > 1 ? h.tasks.length + ' oppgaver' : '1 oppgave'}</p>
                         </div>
                     </div>
                 </div>`;
                 }).join('');
-                return `<div><p class="text-xs font-bold text-textSub uppercase mb-2">${dateKey}</p><div class="space-y-2">${itemsHtml}</div></div>`;
+                return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
             }).join('');
             initSwipeHandlers();
         }
 
-        // --- Oppdatert Redigerings-logikk ---
+        // --- ENDRING 1: START EDIT (HIGHLIGHT & LÅST NAVN) ---
         function startEditEntry(id) {
-            closeAllSwipes();
-            closeDesktopMenu();
+            closeAllSwipes(); closeDesktopMenu();
             const h = history.find(item => item.id === id);
             if (!h) return;
-
             currentEditingId = id;
-            document.getElementById('taskScreenTitle').innerText = "Endre bidraget";
-            
-            // Lås navnevelgeren og sett riktig bruker
-            const sel = document.getElementById('userPerforming');
-            sel.value = h.userId;
-            sel.disabled = true;
+            document.getElementById('taskScreenTitle').innerText = "Endre bidrag";
+            const userSel = document.getElementById('userPerforming');
+            userSel.value = h.userId;
+            userSel.disabled = true; // Lås navn ved redigering
 
-            // Highlighte valgte oppgaver
+            // Finn ID-er for highlighting
             selectedTasksOnScreen = [];
             h.tasks.forEach(tName => {
-                const type = taskTypes.find(tt => tt.name.toLowerCase() === tName.toLowerCase());
-                if (type) selectedTasksOnScreen.push(type.id);
+                const type = taskTypes.find(t => t.name.toLowerCase() === tName.toLowerCase());
+                if(type) selectedTasksOnScreen.push(type.id);
             });
 
             renderTaskBubbles();
@@ -408,7 +445,8 @@
         function showTaskSelection() { 
             currentEditingId = null;
             document.getElementById('taskScreenTitle').innerText = "Nytt bidrag";
-            document.getElementById('userPerforming').disabled = false;
+            const userSel = document.getElementById('userPerforming');
+            userSel.disabled = false;
             selectedTasksOnScreen = [];
             renderTaskBubbles(); 
             document.getElementById('taskSelectionScreen').classList.remove('hidden'); 
@@ -418,15 +456,16 @@
         function hideTaskSelection() { 
             document.getElementById('taskSelectionScreen').classList.add('hidden'); 
             document.getElementById('mainScreen').classList.remove('hidden');
+            currentEditingId = null;
         }
 
         function renderTaskBubbles() {
             document.getElementById('taskBubbleContainer').innerHTML = taskTypes.map(t => {
                 const sel = selectedTasksOnScreen.includes(t.id);
-                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm transition-all flex items-center gap-3 ${sel ? 'bg-taskCyan text-appBg font-bold' : 'bg-cardBg border border-white/5 text-textMain'}">
-                    <i class="fas ${sel ? 'fa-check-circle' : 'fa-circle'}"></i>
+                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm transition-all flex items-center gap-3 ${sel ? 'bg-taskCyan text-appBg font-bold scale-95 shadow-lg' : 'bg-cardBg border border-white/5 text-textMain'}">
+                    ${sel ? '<i class="fas fa-check-circle text-appBg"></i>' : `<i class="fas fa-${t.icon || 'star'} text-taskBlue"></i>`}
                     <span>${t.name}</span>
-                    <span class="text-[10px] opacity-60">${t.points}p</span>
+                    <span class="text-[10px] ${sel ? 'text-appBg/60' : 'text-textSub'}">${t.points}p</span>
                 </button>`;
             }).join('');
         }
@@ -438,54 +477,52 @@
 
         function saveRegisteredTasks() {
             const uId = parseInt(document.getElementById('userPerforming').value);
-            if(!uId || !selectedTasksOnScreen.length) return alert("Mangler navn eller oppgaver.");
-
-            const taskNames = selectedTasksOnScreen.map(tid => taskTypes.find(tt => tt.id === tid).name.toLowerCase());
-            const totalPoints = selectedTasksOnScreen.reduce((sum, tid) => sum + taskTypes.find(tt => tt.id === tid).points, 0);
-
+            if(!uId) return alert("Hvem er du? Velg navn øverst.");
+            if(!selectedTasksOnScreen.length) return alert("Velg minst én ting du har gjort!");
+            const taskNames = []; let totalPoints = 0;
+            selectedTasksOnScreen.forEach(tid => {
+                const t = taskTypes.find(tt => tt.id === tid);
+                taskNames.push(t.name.toLowerCase());
+                totalPoints += t.points;
+            });
             if (currentEditingId) {
-                const h = history.find(item => item.id === currentEditingId);
-                h.tasks = taskNames;
-                h.points = totalPoints;
-                // Åpner datovelgeren slik at man kan endre dato hvis ønskelig
-                openDatePicker(currentEditingId);
+                const hIndex = history.findIndex(i => i.id === currentEditingId);
+                if(hIndex !== -1) { history[hIndex].tasks = taskNames; history[hIndex].points = totalPoints; }
             } else {
                 history.unshift({ id: Date.now(), userId: uId, tasks: taskNames, points: totalPoints, date: new Date().toISOString() });
-                sync();
             }
-            hideTaskSelection();
+            sync(); hideTaskSelection();
         }
 
-        function deleteEntry(id) {
+        function undo(id) {
             closeAllSwipes();
             customConfirm("Vil du slette dette bidraget?", () => {
-                history = history.filter(h => h.id !== id);
+                history = history.filter(i => i.id !== id);
                 sync();
             });
         }
 
-        // --- Originale modaler og administrasjon ---
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
         function closeAllModals() { ['adminModal','memberModal','taskAdminModal'].forEach(id => document.getElementById(id).classList.add('hidden')); }
 
         function renderAdminLists() {
             document.getElementById('manageMembersList').innerHTML = members.map(m => `<div class="admin-swipe-item" data-admin-id="member-${m.id}" oncontextmenu="showAdminContextMenu(event, 'member', ${m.id})">
                 <div class="swipe-actions">
-                    <button class="action-edit" onclick="startRenameMember(${m.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
-                    <button class="action-delete" onclick="deleteMember(${m.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                    <button class="action-edit" onclick="startRenameMember(${m.id})"><i class="fas fa-pen text-base"></i><span>Endre</span></button>
+                    <button class="action-delete" onclick="deleteMember(${m.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
                 </div>
                 <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
-                    <span>${m.name}</span>
+                    <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full shrink-0" style="background:${m.color}"></span><span>${m.name}</span></div>
                     <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleAdminDesktopMenu('member', ${m.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
                 </div>
             </div>`).join('');
             document.getElementById('manageTasksList').innerHTML = taskTypes.map(t => `<div class="admin-swipe-item" data-admin-id="task-${t.id}" oncontextmenu="showAdminContextMenu(event, 'task', ${t.id})">
                 <div class="swipe-actions">
-                    <button class="action-edit" onclick="startRenameTask(${t.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
-                    <button class="action-delete" onclick="deleteTaskType(${t.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
+                    <button class="action-edit" onclick="startRenameTask(${t.id})"><i class="fas fa-pen text-base"></i><span>Endre</span></button>
+                    <button class="action-delete" onclick="deleteTaskType(${t.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
                 </div>
                 <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
-                    <span>${t.name} (${t.points}p)</span>
+                    <div><span class="block">${t.name}</span><span class="text-[10px] text-textSub">${t.points} poeng</span></div>
                     <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleAdminDesktopMenu('task', ${t.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
                 </div>
             </div>`).join('');
@@ -493,184 +530,152 @@
         }
 
         function addMember() {
-            const n = document.getElementById('newMemberName').value.trim();
-            if(!n) return;
-            members.push({ id: Date.now(), name: n, color: allColors[members.length % allColors.length] });
+            const n = document.getElementById('newMemberName').value.trim(); if(!n) return;
+            const available = allColors.filter(c => !members.map(m => m.color).includes(c));
+            members.push({ id: Date.now(), name: n, points: 0, color: available[0] || allColors[0] });
             document.getElementById('newMemberName').value = ''; sync();
         }
 
+        function deleteMember(id) { closeAllAdminSwipes(); customConfirm("Slette medlem og alle tilhørende data?", () => { members = members.filter(m => m.id !== id); history = history.filter(h => h.userId !== id); sync(); }); }
         function addTaskType() {
-            const n = document.getElementById('newTaskName').value.trim();
-            const p = parseInt(document.getElementById('newTaskPoints').value);
-            if(n && p) { 
-                taskTypes.push({ id: Date.now(), name: n, points: p }); 
-                document.getElementById('newTaskName').value = '';
-                document.getElementById('newTaskPoints').value = '';
-                sync(); 
-            }
+            const n = document.getElementById('newTaskName').value.trim(), p = parseInt(document.getElementById('newTaskPoints').value);
+            if(n && p) { taskTypes.push({ id: Date.now(), name: n, points: p, icon: 'check-circle' }); document.getElementById('newTaskName').value = ''; document.getElementById('newTaskPoints').value = ''; sync(); }
         }
+        function deleteTaskType(id) { closeAllAdminSwipes(); customConfirm("Fjerne denne oppgaven?", () => { taskTypes = taskTypes.filter(t => t.id !== id); sync(); }); }
 
-        // Logikk for å automatisk oppdatere poeng i historikk
+        // --- ENDRING 2: POENG-FIX (OPPDATERER HISTORIKK VED ENDRING AV VERDI I INNSTILLINGER) ---
         function startRenameTask(id) {
+            closeAllAdminSwipes();
             const t = taskTypes.find(tt => tt.id === id);
-            openRenameModal('Endre oppgave', t.name, (newName, newPoints) => {
-                if (newPoints && newPoints !== t.points) {
-                    t.points = newPoints;
-                    t.name = newName;
-                    // Oppdater poeng i historikken
-                    history.forEach(h => {
-                        let total = 0;
-                        h.tasks.forEach(tn => {
-                            const found = taskTypes.find(tt => tt.name.toLowerCase() === tn.toLowerCase());
-                            if(found) total += found.points;
-                        });
-                        h.points = total;
-                    });
-                } else {
-                    t.name = newName;
+            if (!t) return;
+            openRenameModal('Endre oppgave', t.name, function(newName, newPoints) {
+                let changed = false;
+                const oldNameLower = t.name.toLowerCase();
+                const newNameLower = newName.trim().toLowerCase();
+
+                if (newName.trim() !== t.name) {
+                    t.name = newName.trim();
+                    history.forEach(h => { h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn); });
+                    changed = true;
                 }
-                sync();
+                if (newPoints !== undefined && !isNaN(newPoints) && newPoints !== t.points) {
+                    t.points = newPoints;
+                    changed = true;
+                }
+
+                if (changed) {
+                    // Recalculate ALL points in history based on updated taskTypes
+                    history.forEach(entry => {
+                        let newTotal = 0;
+                        entry.tasks.forEach(taskName => {
+                            const type = taskTypes.find(tt => tt.name.toLowerCase() === taskName.toLowerCase());
+                            if(type) newTotal += type.points;
+                        });
+                        entry.points = newTotal;
+                    });
+                    sync();
+                }
             }, true, t.points);
         }
 
-        // --- Helper funksjoner fra originalkoden ---
-        function openDatePicker(historyId) {
-            const h = history.find(i => i.id === historyId);
-            renderCalendar(historyId, new Date(h.date).getFullYear(), new Date(h.date).getMonth(), new Date(h.date));
+        let activeMemberHistoryId = null, activeMemberHistoryPeriod = 'today';
+        function showMemberHistory(id) { activeMemberHistoryId = id; activeMemberHistoryPeriod = 'today'; renderMemberHistory(); document.getElementById('memberHistoryScreen').classList.remove('hidden'); document.getElementById('mainScreen').classList.add('hidden'); }
+        function closeMemberHistory() { document.getElementById('memberHistoryScreen').classList.add('hidden'); document.getElementById('mainScreen').classList.remove('hidden'); activeMemberHistoryId = null; }
+        function setMemberHistoryPeriod(key) { activeMemberHistoryPeriod = key; renderMemberHistory(); }
+        function renderMemberHistory() {
+            const m = members.find(mem => mem.id === activeMemberHistoryId); if (!m) return;
+            document.getElementById('memberHistoryTitle').innerText = m.name.split(' ')[0];
+            document.getElementById('memberHistoryName').innerText = m.name;
+            const avatar = document.getElementById('memberHistoryAvatar'); avatar.style.background = m.color; avatar.innerText = m.name.substring(0, 2).toUpperCase();
+            const periodHistory = filterHistory(activeMemberHistoryPeriod).filter(h => h.userId === m.id);
+            document.getElementById('memberHistoryStats').innerHTML = `<div class="bg-appBg rounded-xl p-3 border border-white/5 text-center"><p class="text-[10px] text-textSub uppercase font-bold mb-1">Oppgaver</p><p class="text-lg font-bold text-taskCyan">${periodHistory.reduce((sum, h) => sum + h.tasks.length, 0)}</p></div><div class="bg-appBg rounded-xl p-3 border border-white/5 text-center"><p class="text-[10px] text-textSub uppercase font-bold mb-1">Poeng</p><p class="text-lg font-bold text-taskCyan">${periodHistory.reduce((sum, h) => sum + h.points, 0)}p</p></div>`;
+            document.getElementById('memberHistoryPeriodButtons').innerHTML = periods.map(p => `<button onclick="setMemberHistoryPeriod('${p.key}')" class="px-3 py-1.5 rounded-full font-bold text-xs transition-all ${p.key === activeMemberHistoryPeriod ? 'bg-taskBlue text-white' : 'bg-cardBg border border-white/5 text-textSub'}">${p.label}</button>`).join('');
+            const log = periodHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+            document.getElementById('memberHistoryLog').innerHTML = log.length ? log.map(h => `<div class="p-3 bg-cardBg rounded-2xl border border-white/5 flex gap-4 items-center"><span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs" style="background:${m.color}">${m.name.substring(0,2).toUpperCase()}</span><div class="flex-1 min-w-0"><p class="text-sm font-medium text-taskCyan">${h.tasks.join(', ')}</p><p class="text-[10px] text-textSub uppercase">+${h.points} poeng · ${new Date(h.date).toLocaleDateString('no-NO', {day:'numeric', month:'short'})}</p></div></div>`).join('') : '<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen logg.</p>';
         }
 
-        function renderCalendar(historyId, year, month, selectedDate) {
-            const existing = document.getElementById('miniCalendarOverlay');
-            if (existing) existing.remove();
-            const monthNames = ['Januar','Februar','Mars','April','Mai','Juni','Juli','August','September','Oktober','November','Desember'];
-            const dayLabels = ['Ma','Ti','On','To','Fr','Lø','Sø'];
-            const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month+1, 0);
-            let startDow = firstDay.getDay();
-            startDow = startDow === 0 ? 6 : startDow - 1;
-            let daysHtml = dayLabels.map(d => `<div class="cal-day-label">${d}</div>`).join('');
-            for(let i=0; i<startDow; i++) daysHtml += `<div class="cal-day other-month"></div>`;
-            for(let d=1; d<=lastDay.getDate(); d++) {
-                const isSel = (year === selectedDate.getFullYear() && month === selectedDate.getMonth() && d === selectedDate.getDate());
-                daysHtml += `<div class="cal-day ${isSel ? 'selected' : ''}" onclick="selectCalendarDate(${historyId}, ${year}, ${month}, ${d})">${d}</div>`;
-            }
-            const overlay = document.createElement('div');
-            overlay.id = 'miniCalendarOverlay';
-            overlay.className = 'mini-calendar-overlay';
-            overlay.innerHTML = `<div class="mini-calendar" onclick="event.stopPropagation()">
-                <div class="cal-header">
-                    <button onclick="renderCalendar(${historyId}, ${month===0?year-1:year}, ${month===0?11:month-1}, new Date('${selectedDate.toISOString()}'))"><i class="fas fa-chevron-left"></i></button>
-                    <span class="font-bold">${monthNames[month]} ${year}</span>
-                    <button onclick="renderCalendar(${historyId}, ${month===11?year+1:year}, ${month===11?0:month+1}, new Date('${selectedDate.toISOString()}'))"><i class="fas fa-chevron-right"></i></button>
-                </div>
-                <div class="cal-grid">${daysHtml}</div>
-                <button onclick="closeCalendar()" class="w-full mt-4 text-textSub text-xs">Ferdig</button>
-            </div>`;
-            overlay.onclick = closeCalendar;
-            document.body.appendChild(overlay);
-        }
-
-        function selectCalendarDate(historyId, y, m, d) {
-            const h = history.find(i => i.id === historyId);
-            const old = new Date(h.date);
-            h.date = new Date(y, m, d, old.getHours(), old.getMinutes()).toISOString();
-            sync();
-            openDatePicker(historyId);
-        }
-
-        function closeCalendar() { if(document.getElementById('miniCalendarOverlay')) document.getElementById('miniCalendarOverlay').remove(); }
-
-        // --- Swipe og Desktop Menyer (Gjenopprettet) ---
-        let currentDesktopMenu = null;
+        let currentlyOpenSwipe = null, currentDesktopMenu = null;
         function toggleDesktopMenu(id, btn) {
-            closeDesktopMenu();
-            const dropdown = document.createElement('div');
-            dropdown.className = 'desktop-dropdown';
-            dropdown.innerHTML = `
-                <button onclick="startEditEntry(${id})"><i class="fas fa-pen"></i> Endre bidraget</button>
-                <button class="delete-option" onclick="deleteEntry(${id})"><i class="fas fa-trash"></i> Slette bidraget</button>`;
-            document.body.appendChild(dropdown);
-            const rect = btn.getBoundingClientRect();
-            dropdown.style.top = (rect.bottom + 4) + 'px';
-            dropdown.style.left = (rect.right - 160) + 'px';
-            currentDesktopMenu = dropdown;
+            closeDesktopMenu(); const dropdown = document.createElement('div'); dropdown.className = 'desktop-dropdown';
+            dropdown.innerHTML = `<button onclick="event.stopPropagation(); closeDesktopMenu(); openDatePicker(${id})"><i class="fas fa-calendar-alt text-blue-500"></i> Dato</button><button onclick="event.stopPropagation(); closeDesktopMenu(); startEditEntry(${id})"><i class="fas fa-pen text-purple-500"></i> Endre</button><button class="delete-option" onclick="event.stopPropagation(); closeDesktopMenu(); undo(${id})"><i class="fas fa-trash-alt"></i> Slett</button>`;
+            document.body.appendChild(dropdown); const rect = btn.getBoundingClientRect(); dropdown.style.top = (rect.bottom + 4) + 'px'; dropdown.style.left = (rect.right - 160) + 'px'; currentDesktopMenu = { dropdown, btn };
         }
-        function closeDesktopMenu() { if(currentDesktopMenu) { currentDesktopMenu.remove(); currentDesktopMenu = null; } }
-        document.addEventListener('click', closeDesktopMenu);
+        function closeDesktopMenu() { if (currentDesktopMenu) { currentDesktopMenu.dropdown.remove(); currentDesktopMenu = null; } }
+        document.addEventListener('click', e => { if (currentDesktopMenu && !e.target.closest('.desktop-dropdown') && !e.target.closest('.desktop-menu-btn')) closeDesktopMenu(); }, true);
 
         function showContextMenu(e, id) {
-            e.preventDefault();
-            closeDesktopMenu();
-            const dropdown = document.createElement('div');
-            dropdown.className = 'desktop-dropdown';
-            dropdown.innerHTML = `
-                <button onclick="startEditEntry(${id})"><i class="fas fa-pen"></i> Endre bidraget</button>
-                <button class="delete-option" onclick="deleteEntry(${id})"><i class="fas fa-trash"></i> Slette bidraget</button>`;
-            document.body.appendChild(dropdown);
-            dropdown.style.top = e.clientY + 'px';
-            dropdown.style.left = e.clientX + 'px';
-            currentDesktopMenu = dropdown;
+            if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+            e.preventDefault(); closeDesktopMenu();
+            const dropdown = document.createElement('div'); dropdown.className = 'desktop-dropdown';
+            dropdown.innerHTML = `<button onclick="openDatePicker(${id})"><i class="fas fa-calendar-alt text-blue-500"></i> Dato</button><button onclick="startEditEntry(${id})"><i class="fas fa-pen text-purple-500"></i> Endre</button><button class="delete-option" onclick="undo(${id})"><i class="fas fa-trash-alt"></i> Slett</button>`;
+            document.body.appendChild(dropdown); dropdown.style.top = e.clientY + 'px'; dropdown.style.left = e.clientX + 'px';
+            currentDesktopMenu = { dropdown, btn: null };
         }
 
+        function closeAllSwipes() { document.querySelectorAll('.swipe-item .swipe-content').forEach(c => { c.style.transform = 'translateX(0)'; }); currentlyOpenSwipe = null; }
         function initSwipeHandlers() {
             document.querySelectorAll('.swipe-item').forEach(item => {
-                let startX = 0, currentX = 0, swiping = false;
-                const content = item.querySelector('.swipe-content');
-                item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; swiping = true; content.style.transition = 'none'; });
-                item.addEventListener('touchmove', e => {
-                    if(!swiping) return;
-                    currentX = e.touches[0].clientX;
-                    let diff = currentX - startX;
-                    if(diff < -144) diff = -144;
-                    if(diff > 0) diff = 0;
-                    content.style.transform = `translateX(${diff}px)`;
-                    item.querySelector('.swipe-actions').style.visibility = 'visible';
-                });
-                item.addEventListener('touchend', () => {
-                    swiping = false;
-                    content.style.transition = 'transform 0.3s ease';
-                    content.style.transform = (currentX - startX < -70) ? 'translateX(-144px)' : 'translateX(0)';
-                });
+                let startX = 0, swiping = false, content = item.querySelector('.swipe-content');
+                item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; swiping = true; content.style.transition = 'none'; }, {passive:true});
+                item.addEventListener('touchmove', e => { if(!swiping) return; let diff = e.touches[0].clientX - startX; if(diff > 0) diff = 0; if(diff < -216) diff = -216; content.style.transform = `translateX(${diff}px)`; }, {passive:true});
+                item.addEventListener('touchend', e => { swiping = false; content.style.transition = 'transform 0.2s'; let diff = e.changedTouches[0].clientX - startX; if(diff < -60) content.style.transform = 'translateX(-216px)'; else content.style.transform = 'translateX(0)'; });
+            });
+        }
+        function initAdminSwipeHandlers() {
+            document.querySelectorAll('.admin-swipe-item').forEach(item => {
+                let startX = 0, swiping = false, content = item.querySelector('.swipe-content');
+                item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; swiping = true; content.style.transition = 'none'; }, {passive:true});
+                item.addEventListener('touchmove', e => { if(!swiping) return; let diff = e.touches[0].clientX - startX; if(diff > 0) diff = 0; if(diff < -144) diff = -144; content.style.transform = `translateX(${diff}px)`; }, {passive:true});
+                item.addEventListener('touchend', e => { swiping = false; content.style.transition = 'transform 0.2s'; let diff = e.changedTouches[0].clientX - startX; if(diff < -60) content.style.transform = 'translateX(-144px)'; else content.style.transform = 'translateX(0)'; });
             });
         }
 
-        // Confirm & Rename Modals
+        function toggleAdminDesktopMenu(type, id, btn) {
+            closeDesktopMenu(); const dropdown = document.createElement('div'); dropdown.className = 'desktop-dropdown';
+            if (type === 'member') dropdown.innerHTML = `<button onclick="startRenameMember(${id})">Endre navn</button><button class="delete-option" onclick="deleteMember(${id})">Slett</button>`;
+            else dropdown.innerHTML = `<button onclick="startRenameTask(${id})">Endre oppgave</button><button class="delete-option" onclick="deleteTaskType(${id})">Slett</button>`;
+            document.body.appendChild(dropdown); const rect = btn.getBoundingClientRect(); dropdown.style.top = (rect.bottom + 4) + 'px'; dropdown.style.left = (rect.right - 160) + 'px'; currentDesktopMenu = { dropdown, btn };
+        }
+        function showAdminContextMenu(e, type, id) { e.preventDefault(); toggleAdminDesktopMenu(type, id, {getBoundingClientRect:()=>({bottom:e.clientY, right:e.clientX+160}), parentElement:document.body}); }
+
         let renameCallback = null;
-        function openRenameModal(title, val, cb, pts, pval) {
-            renameCallback = cb;
-            document.getElementById('renameModalTitle').innerText = title;
-            document.getElementById('renameInput').value = val;
-            const pRow = document.getElementById('renamePointsRow');
-            pRow.classList.toggle('hidden', !pts);
-            if(pts) document.getElementById('renamePointsInput').value = pval;
+        function openRenameModal(title, val, cb, showP, curP) {
+            renameCallback = cb; document.getElementById('renameModalTitle').innerText = title; document.getElementById('renameInput').value = val;
+            if(showP){ document.getElementById('renamePointsRow').classList.remove('hidden'); document.getElementById('renamePointsInput').value = curP; }
+            else document.getElementById('renamePointsRow').classList.add('hidden');
             document.getElementById('renameModal').classList.remove('hidden');
         }
-        function executeRename() {
-            const n = document.getElementById('renameInput').value;
-            const p = parseInt(document.getElementById('renamePointsInput').value);
-            renameCallback(n, p); closeRenameModal();
-        }
         function closeRenameModal() { document.getElementById('renameModal').classList.add('hidden'); }
+        function executeRename() { const n = document.getElementById('renameInput').value; const p = parseInt(document.getElementById('renamePointsInput').value); if(renameCallback) renameCallback(n, p); closeRenameModal(); }
+        function startRenameMember(id) { const m = members.find(mem => mem.id === id); openRenameModal('Endre navn', m.name, n => { m.name = n; sync(); }); }
 
-        let confirmCb = null;
-        function customConfirm(msg, cb) {
-            confirmCb = cb;
-            document.getElementById('confirmMessage').innerText = msg;
-            document.getElementById('confirmModal').classList.remove('hidden');
+        function openDatePicker(id) { const h = history.find(i => i.id === id); renderCalendar(id, new Date(h.date).getFullYear(), new Date(h.date).getMonth(), new Date(h.date)); }
+        function renderCalendar(id, y, m, sel) {
+            const container = document.createElement('div'); container.id = 'miniCalendarOverlay'; container.className = 'mini-calendar-overlay';
+            const days = ['Ma','Ti','On','To','Fr','Lø','Sø'];
+            const lastDay = new Date(y, m + 1, 0).getDate();
+            let start = new Date(y, m, 1).getDay(); start = start === 0 ? 6 : start - 1;
+            let html = `<div class="mini-calendar" onclick="event.stopPropagation()"><div class="cal-header"><button onclick="closeCalendar()">Lukk</button><span class="font-bold">${y} - ${m+1}</span></div><div class="cal-grid">`;
+            days.forEach(d => html += `<div class="cal-day-label">${d}</div>`);
+            for(let i=0; i<start; i++) html += '<div></div>';
+            for(let d=1; d<=lastDay; d++) {
+                const isSel = d === sel.getDate() && m === sel.getMonth() && y === sel.getFullYear();
+                html += `<div class="cal-day ${isSel?'selected':''}" onclick="selectCalendarDate(${id},${y},${m},${d})">${d}</div>`;
+            }
+            html += '</div></div>'; container.innerHTML = html; container.onclick = closeCalendar; document.body.appendChild(container);
         }
-        document.getElementById('confirmExecuteBtn').onclick = () => { confirmCb(); closeConfirm(); };
+        function selectCalendarDate(id, y, m, d) { const h = history.find(i => i.id === id); const old = new Date(h.date); h.date = new Date(y, m, d, old.getHours(), old.getMinutes()).toISOString(); sync(); closeCalendar(); }
+        function closeCalendar() { const c = document.getElementById('miniCalendarOverlay'); if(c) c.remove(); }
+
+        let pendingDeleteAction = null;
+        function customConfirm(msg, action) { document.getElementById('confirmMessage').innerText = msg; document.getElementById('confirmModal').classList.remove('hidden'); pendingDeleteAction = action; }
         function closeConfirm() { document.getElementById('confirmModal').classList.add('hidden'); }
+        document.getElementById('confirmExecuteBtn').onclick = () => { if(pendingDeleteAction) pendingDeleteAction(); closeConfirm(); };
 
-        function startRenameMember(id) {
-            const m = members.find(mem => mem.id === id);
-            openRenameModal('Endre navn', m.name, (n) => { m.name = n; sync(); });
-        }
-        function deleteMember(id) { customConfirm("Slette medlem?", () => { members = members.filter(m => m.id !== id); sync(); }); }
-        function deleteTaskType(id) { customConfirm("Slette oppgave?", () => { taskTypes = taskTypes.filter(t => t.id !== id); sync(); }); }
-        function initAdminSwipeHandlers() { /* Samme logikk som over for admin-elementer */ }
-
-        // Lagre bruker-valg lokalt
-        document.getElementById('userPerforming').onchange = (e) => localStorage.setItem('kollektiv_user', e.target.value);
+        function saveSelectedUser(id) { if(id) localStorage.setItem('kollektiv_user', id); }
+        function loadSelectedUser() { return localStorage.getItem('kollektiv_user'); }
+        document.getElementById('userPerforming').addEventListener('change', function() { if(!currentEditingId) saveSelectedUser(this.value); });
+        function closeAllAdminSwipes() { document.querySelectorAll('.admin-swipe-item .swipe-content').forEach(c => c.style.transform = 'translateX(0)'); }
     </script>
 </body>
 </html>
