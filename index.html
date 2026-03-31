@@ -269,44 +269,50 @@
         let activePeriod = 'today';
         
         // LYD-FUNKSJON TILPASSET MOBIL
-        let isPlaying = false;
-        function playIntroSound(durationSeconds = 7) {
-            if (isPlaying) return;
-            isPlaying = true;
+        // Flytt denne ut av funksjonen så vi gjenbruker samme objekt
+let globalAudio = null;
 
-            const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3'; 
-            const audio = new Audio(audioUrl);
-            
-            audio.volume = 0;
-            audio.play().then(() => {
-                // Fade inn over 1 sekund
-                let fadeInInterval = setInterval(() => {
-                    if (audio.volume < 0.45) {
-                        audio.volume += 0.05;
-                    } else {
-                        audio.volume = 0.5;
-                        clearInterval(fadeInInterval);
-                    }
-                }, 100);
+function playIntroSound(durationSeconds = 7) {
+    const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3';
+    
+    // Hvis lydobjektet ikke finnes, lag det. Hvis det finnes, stopp og nullstill det.
+    if (!globalAudio) {
+        globalAudio = new Audio(audioUrl);
+    } else {
+        globalAudio.pause();
+        globalAudio.currentTime = 0;
+    }
+    
+    globalAudio.volume = 0;
 
-                // Start fade ut etter angitt tid
-                setTimeout(() => {
-                    let fadeOutInterval = setInterval(() => {
-                        if (audio.volume > 0.05) {
-                            audio.volume -= 0.05;
-                        } else {
-                            audio.pause();
-                            audio.remove(); // Fjerner objektet for å frigjøre minne på mobil
-                            clearInterval(fadeOutInterval);
-                            isPlaying = false;
-                        }
-                    }, 100);
-                }, (durationSeconds * 1000) - 1000);
-            }).catch(e => {
-                isPlaying = false;
-                console.log("Audio blocked", e);
-            });
-        }
+    // Spill av
+    globalAudio.play().then(() => {
+        // Fade inn
+        let fadeIn = setInterval(() => {
+            if (globalAudio.volume < 0.3) {
+                globalAudio.volume = Math.min(0.9, globalAudio.volume + 0.1);
+            } else {
+                clearInterval(fadeIn);
+            }
+        }, 100);
+
+        // Fade ut etter gitt tid
+        setTimeout(() => {
+            let fadeOut = setInterval(() => {
+                if (globalAudio && globalAudio.volume > 0.05) {
+                    globalAudio.volume = Math.max(0, globalAudio.volume - 0.05);
+                } else if (globalAudio) {
+                    globalAudio.pause();
+                    globalAudio.currentTime = 0;
+                    clearInterval(fadeOut);
+                }
+            }, 100);
+        }, durationSeconds * 1000);
+        
+    }).catch(e => {
+        console.error("Kunne ikke spille lyd:", e);
+    });
+}
 
         db.ref('/').on('value', (snapshot) => {
             const raw = snapshot.val();
