@@ -19,152 +19,226 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        appBg: '#0A0E17',
+                        cardBg: '#151C2C',
+                        textMain: '#F8FAFC',
+                        textSub: '#8D9CB1',
+                        accent: '#7C3AED',
+                        taskCyan: '#2DD4BF',
+                        taskBlue: '#2563EB'
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --bg: #0A0E17;
-            --card-bg: #151C2C;
-            --accent: #7C3AED;
-            --accent-light: #9F67FF;
-            --secondary: #2DD4BF;
-            --text: #F8FAFC;
-            --text-sub: #94A3B8;
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        input, select, textarea { font-size: 16px !important; }
+        select { -webkit-appearance: none; }
+        button, a, [role="button"], .swipe-item, .admin-swipe-item { min-height: 44px; }
+        @media (max-width: 640px) {
+            input, select, textarea { padding: 10px 12px; border-radius: 8px; }
         }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
+        .swipe-item { position: relative; overflow: hidden; }
+        .swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease, padding-left 0.15s; }
+        .swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
+        .swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
+        .swipe-item .swipe-actions .action-date { background: #3B82F6; border-radius: 0; }
+        .swipe-item .swipe-actions .action-delete { background: #EF4444; border-radius: 0; }
+        .mini-calendar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .mini-calendar { background: #151C2C; border-radius: 20px; padding: 20px; width: 100%; max-width: 320px; border: 1px solid rgba(255,255,255,0.1); }
+        .mini-calendar .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .mini-calendar .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+        .mini-calendar .cal-day { padding: 8px 0; border-radius: 10px; font-size: 14px; cursor: pointer; transition: background 0.15s; }
+        .mini-calendar .cal-day:hover { background: rgba(255,255,255,0.1); }
+        .mini-calendar .cal-day.selected { background: #7C3AED; color: white; font-weight: bold; }
+        .mini-calendar .cal-day.today { outline: 2px solid #7C3AED; outline-offset: -2px; }
+        .mini-calendar .cal-day.future { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+        .mini-calendar .cal-day.other-month { opacity: 0.3; }
+        .mini-calendar .cal-day-label { font-size: 11px; color: #8D9CB1; padding: 4px 0; font-weight: bold; }
+        .mini-calendar .cal-year-select { display: flex; align-items: center; gap: 6px; }
+        .mini-calendar .cal-year-select button { background: none; border: none; color: #8D9CB1; cursor: pointer; padding: 2px 6px; font-size: 12px; border-radius: 6px; transition: background 0.15s, color 0.15s; }
+        .mini-calendar .cal-year-select button:hover { background: rgba(255,255,255,0.1); color: white; }
+        .mini-calendar .cal-year-label { font-size: 13px; color: #7C3AED; font-weight: bold; cursor: pointer; min-width: 42px; text-align: center; }
+        .cal-year-dropdown { position: absolute; left: 0; top: 100%; background: #1E2538; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; max-height: 180px; overflow-y: auto; z-index: 10; min-width: 80px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .cal-year-dropdown button { display: block; width: 100%; padding: 8px 16px; background: none; border: none; color: #CBD5E1; font-size: 13px; cursor: pointer; text-align: center; transition: background 0.15s; }
+        .cal-year-dropdown button:hover { background: rgba(255,255,255,0.06); }
+        .cal-year-dropdown button.active-year { color: #7C3AED; font-weight: bold; background: rgba(124,58,237,0.1); }
+        .swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+        .swipe-item .desktop-menu-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+        @media (hover: hover) and (pointer: fine) {
+            .swipe-item:hover .desktop-menu-btn, .swipe-item .desktop-menu-btn.active { display: flex; }
+            .swipe-item:hover .swipe-content { padding-right: 48px; }
         }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .history-item {
-            border-left: 3px solid var(--accent);
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .modal {
-            background: rgba(10, 14, 23, 0.95);
-            backdrop-filter: blur(10px);
-        }
-
-        @keyframes pulse-soft {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
-        .active-user {
-            border: 2px solid var(--accent);
-            animation: pulse-soft 2s infinite;
-        }
-
-        input, select {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            color: white !important;
-        }
-
-        .cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-        }
-        .cal-day {
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            border-radius: 4px;
+        .desktop-dropdown { position: fixed; z-index: 9999; background: #1E2538; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 160px; }
+        .desktop-dropdown button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; background: none; border: none; color: #CBD5E1; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: background 0.15s; }
+        .desktop-dropdown button:hover { background: rgba(255,255,255,0.06); }
+        .desktop-dropdown button.delete-option { color: #F87171; }
+        .desktop-dropdown button.delete-option:hover { background: rgba(239,68,68,0.1); }
+        .admin-swipe-item { position: relative; overflow: hidden; border-radius: 12px; }
+        .admin-swipe-item .swipe-content { position: relative; z-index: 1; background: #0A0E17; transition: transform 0.2s ease, padding-right 0.15s; }
+        .admin-swipe-item .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; visibility: hidden; }
+        .admin-swipe-item .swipe-actions button { display: flex; align-items: center; justify-content: center; width: 72px; font-size: 12px; font-weight: bold; color: white; flex-direction: column; gap: 4px; }
+        .admin-swipe-item .swipe-actions .action-edit { background: #3B82F6; border-radius: 0; }
+        .admin-swipe-item .swipe-actions .action-delete { background: #EF4444; border-radius: 0; }
+        .admin-swipe-item .desktop-menu-btn { display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.08); border: none; color: #8D9CB1; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+        .admin-swipe-item .desktop-menu-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+        @media (hover: hover) and (pointer: fine) {
+            .admin-swipe-item:hover .desktop-menu-btn, .admin-swipe-item .desktop-menu-btn.active { display: flex; }
+            .admin-swipe-item:hover .swipe-content { padding-right: 48px; }
         }
     </style>
 </head>
-<body class="pb-24">
+<body class="bg-appBg text-textMain min-h-screen flex flex-col overflow-x-hidden">
 
-    <div class="max-w-md mx-auto p-5">
-        <header class="flex justify-between items-center mb-8 pt-4">
-            <div>
-                <h1 class="text-3xl font-black tracking-tight text-white">KOLLEKTIVET</h1>
-                <p class="text-text-sub text-sm uppercase tracking-widest opacity-70">Oversikt & Poeng</p>
-            </div>
-            <div class="h-12 w-12 rounded-2xl btn-secondary flex items-center justify-center">
-                <i class="fas fa-home text-accent text-xl"></i>
-            </div>
+    <div id="mainScreen" class="flex-1 flex flex-col p-5 pb-24">
+        <header class="flex justify-between items-center mb-6 pt-2">
+            <h1 class="text-xl font-bold">Oversikt</h1>
+            <button onclick="toggleModal('adminModal')" class="text-xl text-textSub p-2"><i class="fas fa-cog"></i></button>
         </header>
 
-        <section class="card p-6 mb-6">
-            <h2 id="leadStatus" class="text-xl font-bold mb-3 text-center">Laster...</h2>
-            <div class="flex justify-center relative">
-                <canvas id="pointsChart" style="max-height: 200px; max-width: 200px;"></canvas>
+        <section class="bg-cardBg rounded-3xl p-4 sm:p-6 mb-6 shadow-xl border border-white/5">
+            <h2 id="leadStatus" class="text-lg sm:text-xl font-bold mb-3 text-center">Laster data...</h2>
+            <div id="periodButtons" class="flex flex-wrap gap-2 text-[11px] text-textSub justify-center mb-4">
             </div>
-            <div id="chartLegend" class="flex flex-wrap justify-center gap-4 mt-4 text-sm">
+            <div class="flex justify-center">
+                <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;"></canvas>
+            </div>
+            <div id="chartLegend" class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm sm:text-base font-medium mt-4 text-textSub"></div>
+        </section>
+
+        <section class="flex-1 space-y-6">
+            <h2 id="logHeading" class="text-2xl sm:text-3xl font-extrabold">I dag</h2>
+            <div id="todayHistory" class="space-y-6">
                 </div>
         </section>
 
-        <div class="grid grid-cols-2 gap-4 mb-8">
-            <button onclick="openContributionModal()" class="btn-primary p-4 rounded-2xl flex flex-col items-center justify-center gap-2">
-                <i class="fas fa-plus-circle text-2xl"></i>
-                <span class="font-bold text-sm">Nytt bidrag</span>
-            </button>
-            <button onclick="toggleHistory()" class="btn-secondary p-4 rounded-2xl flex flex-col items-center justify-center gap-2">
-                <i class="fas fa-list-ul text-2xl"></i>
-                <span class="font-bold text-sm text-text-sub">Historikk</span>
-            </button>
-        </div>
-
-        <section id="historySection" class="space-y-4 hidden">
-            <div class="flex justify-between items-center px-1">
-                <h3 class="text-lg font-bold">Siste bidrag</h3>
-                <span class="text-xs text-text-sub uppercase tracking-widest">Siste 30 dager</span>
-            </div>
-            <div id="historyList" class="space-y-3">
-                </div>
-        </section>
+        <button onclick="showTaskSelection()" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-accent text-white px-8 py-4 rounded-full font-bold shadow-2xl shadow-accent/40 text-lg flex items-center gap-2.5 z-10 active:scale-95 transition-transform">
+            <i class="fas fa-plus text-sm"></i> Legg til bidrag
+        </button>
     </div>
 
-    <div id="contributionModal" class="modal fixed inset-0 z-50 hidden flex items-center justify-center p-6">
-        <div class="bg-card-bg w-full max-w-sm rounded-3xl p-8 border border-white/10">
-            <h3 class="text-2xl font-bold mb-6">Registrer bidrag</h3>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-text-sub uppercase mb-2">Hvem utførte?</label>
-                    <select id="userPerforming" class="w-full p-4 rounded-xl outline-none">
-                        </select>
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-text-sub uppercase mb-2">Hva ble gjort?</label>
-                    <select id="taskType" class="w-full p-4 rounded-xl outline-none">
-                        <option value="oppvask">Ta oppvasken (3p)</option>
-                        <option value="søppel">Gå ut med søppel (1p)</option>
-                        <option value="vask_felles">Vaske fellesareal (10p)</option>
-                        <option value="vask_bad">Vaske bad (8p)</option>
-                        <option value="kjøp_felles">Kjøpe fellesvarer (2p)</option>
-                        <option value="annet">Annet (1p)</option>
-                    </select>
-                </div>
+    <div id="taskSelectionScreen" class="hidden fixed inset-0 bg-appBg z-50 p-5 flex flex-col overflow-y-auto">
+        <header class="flex justify-between items-center mb-6">
+            <button onclick="hideTaskSelection()" class="text-textMain text-sm flex items-center gap-1.5"><i class="fas fa-chevron-left"></i> Tilbake</button>
+            <h1 class="text-xl font-bold">Nytt bidrag</h1>
+            <div></div>
+        </header>
 
-                <div class="flex gap-3 pt-4">
-                    <button onclick="closeContributionModal()" class="flex-1 btn-secondary p-4 rounded-xl font-bold">Avbryt</button>
-                    <button onclick="submitContribution()" class="flex-1 btn-primary p-4 rounded-xl font-bold">Lagre</button>
+        <div class="relative mb-6">
+            <label class="text-xs text-textSub mb-2 block ml-1 uppercase font-bold">Hvem er du?</label>
+            <select id="userPerforming" class="w-full bg-cardBg p-4 rounded-2xl text-textMain outline-none border border-white/10 appearance-none shadow-inner">
+                <option value="">Velg navn...</option>
+            </select>
+            <i class="fas fa-chevron-down absolute right-4 bottom-5 text-textSub pointer-events-none"></i>
+        </div>
+
+        <h2 class="text-2xl sm:text-4xl font-extrabold mb-6 sm:mb-8 leading-tight">Hva har du gjort i dag?</h2>
+        
+        <div id="taskBubbleContainer" class="flex flex-wrap gap-3 pb-32">
+            </div>
+
+        <button onclick="saveRegisteredTasks()" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-accent text-white px-12 py-4 rounded-full font-bold shadow-2xl z-10 active:scale-95 transition-transform">
+            Lagre
+        </button>
+    </div>
+
+    <div id="adminModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onclick="closeAllModals()">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
+            <h3 class="text-lg font-bold mb-6 text-center">Innstillinger</h3>
+            <div class="space-y-3">
+                <button onclick="closeAllModals(); toggleModal('memberModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Legg til medlemmer</span><i class="fas fa-user-friends text-accent"></i></button>
+                <button onclick="closeAllModals(); toggleModal('taskAdminModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Legg til oppgaver</span><i class="fas fa-tasks text-accent"></i></button>
+            </div>
+            <button onclick="toggleModal('adminModal')" class="mt-8 w-full text-textSub text-sm font-bold">Lukk meny</button>
+        </div>
+    </div>
+
+    <div id="memberModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6" onclick="toggleModal('memberModal')">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4">Medlemmer</h3>
+            <div class="flex gap-2 mb-6">
+                <input type="text" id="newMemberName" placeholder="Skriv navn..." class="flex-1 bg-appBg p-4 rounded-xl border border-white/10 text-sm">
+                <button onclick="addMember()" class="bg-accent px-5 rounded-xl font-bold"><i class="fas fa-plus"></i></button>
+            </div>
+            <div id="manageMembersList" class="space-y-2 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+            <button onclick="toggleModal('memberModal')" class="mt-8 w-full text-textSub font-bold">Tilbake</button>
+        </div>
+    </div>
+
+    <div id="taskAdminModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6" onclick="toggleModal('taskAdminModal')">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm overflow-y-auto max-h-[85vh]" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4">Oppgaver og Poeng</h3>
+            <div class="space-y-3 mb-6 bg-appBg p-4 rounded-2xl border border-white/5">
+                <input type="text" id="newTaskName" placeholder="F.eks. Støvsuge" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
+                <input type="number" id="newTaskPoints" placeholder="Antall poeng" class="w-full bg-cardBg p-3 rounded-lg border border-white/10 text-sm">
+                <button onclick="addTaskType()" class="w-full bg-accent py-3 rounded-xl font-bold">Legg til oppgave</button>
+            </div>
+            <div id="manageTasksList" class="space-y-2 overflow-x-hidden"></div>
+            <button onclick="toggleModal('taskAdminModal')" class="mt-8 w-full text-textSub font-bold">Tilbake</button>
+        </div>
+    </div>
+
+    <div id="memberHistoryScreen" class="hidden fixed inset-0 bg-appBg z-50 flex flex-col overflow-y-auto">
+        <div class="p-5 flex-1 pb-24">
+            <header class="flex justify-between items-center mb-6 pt-2">
+                <button onclick="closeMemberHistory()" class="text-textMain text-sm flex items-center gap-1.5"><i class="fas fa-chevron-left"></i> Tilbake</button>
+                <h1 id="memberHistoryTitle" class="text-xl font-bold"></h1>
+                <div></div>
+            </header>
+
+            <section class="bg-cardBg rounded-3xl p-4 sm:p-6 mb-6 shadow-xl border border-white/5">
+                <div class="flex items-center gap-4 mb-4">
+                    <span id="memberHistoryAvatar" class="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shadow-lg shrink-0"></span>
+                    <div>
+                        <h2 id="memberHistoryName" class="text-xl font-bold"></h2>
+                        <p class="text-textSub text-sm">Statistikk</p>
+                    </div>
                 </div>
+                <div id="memberHistoryStats" class="grid grid-cols-2 gap-2"></div>
+            </section>
+
+            <section>
+                <div id="memberHistoryPeriodButtons" class="flex flex-wrap gap-2 mb-4"></div>
+                <div id="memberHistoryLog" class="space-y-4"></div>
+            </section>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10 text-center">
+            <div class="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Er du sikker?</h3>
+            <p id="confirmMessage" class="text-textSub text-sm mb-8 italic">Dette kan ikke angres.</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirm()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold">Avbryt</button>
+                <button id="confirmExecuteBtn" class="flex-1 py-4 rounded-2xl bg-red-500 text-white font-bold shadow-lg shadow-red-500/20">Slett</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="renameModal" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6" onclick="closeRenameModal()">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
+            <div class="w-16 h-16 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fas fa-pen"></i>
+            </div>
+            <h3 id="renameModalTitle" class="text-xl font-bold mb-4 text-center">Endre navn</h3>
+            <input type="text" id="renameInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm mb-3" placeholder="Nytt navn...">
+            <div id="renamePointsRow" class="hidden mb-3">
+                <input type="number" id="renamePointsInput" class="w-full bg-appBg p-4 rounded-xl border border-white/10 text-sm" placeholder="Antall poeng...">
+            </div>
+            <div class="flex gap-3 mt-3">
+                <button onclick="closeRenameModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold">Avbryt</button>
+                <button onclick="executeRename()" class="flex-1 py-4 rounded-2xl bg-accent text-white font-bold shadow-lg shadow-accent/20">Lagre</button>
             </div>
         </div>
     </div>
@@ -176,241 +250,610 @@
             databaseURL: "https://kollektivet-fc493-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "kollektivet-fc493",
             storageBucket: "kollektivet-fc493.firebasestorage.app",
+            messagingSenderId: "131176107292",
             appId: "1:131176107292:web:1a375b8560e00bba4b7ed9"
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const users = [
-            { id: 'user1', name: 'Henrik', color: '#7C3AED' },
-            { id: 'user2', name: 'Aasleik', color: '#2DD4BF' },
-            { id: 'user3', name: 'Sindre', color: '#F59E0B' },
-            { id: 'user4', name: 'Elias', color: '#EC4899' }
+        const defaultTaskTypes = [
+            { id: 1, name: "Redd sengen", points: 10, icon: 'bed' },
+            { id: 2, name: "Laget kaffe", points: 5, icon: 'mug-hot' },
+            { id: 3, name: "Tatt oppvasken", points: 15, icon: 'utensils' },
+            { id: 4, name: "Gått med søpla", points: 20, icon: 'trash' },
+            { id: 5, name: "Vasket gulvet", points: 50, icon: 'broom' }
         ];
 
-        const taskPoints = {
-            'oppvask': 3,
-            'søppel': 1,
-            'vask_felles': 10,
-            'vask_bad': 8,
-            'kjøp_felles': 2,
-            'annet': 1
-        };
-
-        let history = [];
-        let myChart = null;
-        let isPlaying = false; // Hindrer dobbel spilling
+        let members = [], taskTypes = [], history = [], myChart, selectedTasksOnScreen = [];
+        let activePeriod = 'today';
+        let isPlaying = false;
 
         function playIntroSound(durationSeconds = 7) {
-            if (isPlaying) return; // Avbryt hvis lyden allerede spiller
-            
+            if (isPlaying) return;
             isPlaying = true;
+
             const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3'; 
             const audio = new Audio(audioUrl);
             
             audio.volume = 0;
             audio.play().then(() => {
-                // Fade inn
                 let fadeIn = setInterval(() => {
-                    // --- ENDRET: Maks volum er nå 0.5 i stedet for 0.9 ---
-                    if (audio.volume < 0.5) audio.volume += 0.1;
-                    else clearInterval(fadeIn);
+                    if (audio.volume < 0.5) {
+                        audio.volume = Math.min(0.5, audio.volume + 0.05);
+                    } else {
+                        clearInterval(fadeIn);
+                    }
                 }, 100);
 
-                // Fade ut og stopp
-                // --- ENDRET: Starter fade-ut litt tidligere (etter durationSeconds * 1000 - 1500ms) ---
                 setTimeout(() => {
                     let fadeOut = setInterval(() => {
-                        if (audio.volume > 0.1) audio.volume -= 0.1;
-                        else {
+                        if (audio.volume > 0.05) {
+                            audio.volume -= 0.05;
+                        } else {
                             audio.pause();
                             audio.currentTime = 0;
                             clearInterval(fadeOut);
-                            isPlaying = false; // Tillat ny spilling når ferdig
+                            isPlaying = false;
                         }
                     }, 100);
-                }, durationSeconds * 1000 - 1500); 
+                }, durationSeconds * 1000);
             }).catch(e => {
-                isPlaying = false; // Nullstill hvis blokkert
-                console.log("Blokkert");
+                isPlaying = false;
+                console.log("Audio play blocked by browser.");
             });
         }
 
-        function init() {
-            const userSelect = document.getElementById('userPerforming');
-            users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.id;
-                opt.textContent = u.name;
-                userSelect.appendChild(opt);
-            });
+        db.ref('/').on('value', (snapshot) => {
+            const raw = snapshot.val();
+            const isFirstLoad = raw === null;
+            const data = raw || {};
+            members = data.members || [];
+            taskTypes = isFirstLoad ? defaultTaskTypes : (data.taskTypes || []);
+            history = data.history || [];
+            fixDuplicateColors();
+            renderAll();
+        });
 
-            const savedUser = loadSelectedUser();
-            if (savedUser) userSelect.value = savedUser;
+        function sync() { db.ref('/').set({ members, taskTypes, history }); }
 
-            db.ref('history').on('value', (snapshot) => {
-                const data = snapshot.val();
-                history = data ? Object.keys(data).map(key => ({...data[key], id: key})) : [];
-                history.sort((a, b) => new Date(b.date) - new Date(a.date));
-                updateUI();
-            });
-        }
+        const allColors = [
+            '#F87171', '#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F472B6', '#FB923C', '#22D3EE', '#818CF8', '#A3E635', '#E879F9', '#2DD4BF', '#FCA5A5', '#93C5FD', '#6EE7B7', '#FDE047', '#C4B5FD', '#F9A8D4', '#67E8F9', '#BEF264'
+        ];
 
-        function updateUI() {
-            const now = new Date();
-            const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
-            
-            const points = {};
-            users.forEach(u => points[u.id] = 0);
-
-            history.forEach(item => {
-                if (new Date(item.date) > thirtyDaysAgo) {
-                    points[item.userId] = (points[item.userId] || 0) + item.points;
+        function fixDuplicateColors() {
+            const usedColors = new Set();
+            let changed = false;
+            members.forEach(m => {
+                if (usedColors.has(m.color) || !m.color) {
+                    const available = allColors.filter(c => !usedColors.has(c));
+                    m.color = available.length > 0 ? available[0] : allColors[Math.floor(Math.random() * allColors.length)];
+                    changed = true;
                 }
+                usedColors.add(m.color);
             });
-
-            const sortedUsers = [...users].sort((a,b) => (points[b.id] || 0) - (points[a.id] || 0));
-            const leader = sortedUsers[0];
-            document.getElementById('leadStatus').textContent = `${leader.name} leder! 🔥`;
-
-            renderChart(points);
-            renderHistory();
+            if (changed) sync();
         }
 
-        function renderChart(pointsData) {
-            const ctx = document.getElementById('pointsChart').getContext('2d');
-            const dataValues = users.map(u => pointsData[u.id] || 0);
-            
-            if (myChart) myChart.destroy();
+        const periods = [
+            { key: 'today', label: 'I dag' },
+            { key: 'yesterday', label: 'I går' },
+            { key: 'thisWeek', label: 'Denne uken' },
+            { key: 'lastWeek', label: 'Forrige uke' },
+            { key: 'thisMonth', label: 'Denne måneden' },
+            { key: 'lastMonth', label: 'Forrige måned' },
+            { key: 'all', label: 'Alltid' }
+        ];
 
+        function getDateRange(key) {
+            const now = new Date();
+            const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const today = startOfDay(now);
+            switch(key) {
+                case 'today': return { start: today, end: new Date(today.getTime() + 86400000) };
+                case 'yesterday': { const y = new Date(today.getTime() - 86400000); return { start: y, end: today }; }
+                case 'thisWeek': { const d = now.getDay(); const diff = d === 0 ? 6 : d - 1; const mon = new Date(today.getTime() - diff * 86400000); return { start: mon, end: new Date(today.getTime() + 86400000) }; }
+                case 'lastWeek': { const d = now.getDay(); const diff = d === 0 ? 6 : d - 1; const thisMon = new Date(today.getTime() - diff * 86400000); return { start: new Date(thisMon.getTime() - 7 * 86400000), end: thisMon }; }
+                case 'thisMonth': return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(today.getTime() + 86400000) };
+                case 'lastMonth': return { start: new Date(now.getFullYear(), now.getMonth() - 1, 1), end: new Date(now.getFullYear(), now.getMonth(), 1) };
+                case 'all': return { start: new Date(0), end: new Date(today.getTime() + 86400000) };
+            }
+        }
+
+        function filterHistory(key) {
+            const { start, end } = getDateRange(key);
+            return history.filter(h => { const d = new Date(h.date); return d >= start && d < end; });
+        }
+
+        function getPointsForPeriod(memberId, key) {
+            return filterHistory(key).filter(h => h.userId === memberId).reduce((sum, h) => sum + h.points, 0);
+        }
+
+        function setPeriod(key) {
+            activePeriod = key;
+            renderAll();
+        }
+
+        function renderPeriodButtons() {
+            document.getElementById('periodButtons').innerHTML = periods.map(p => {
+                const active = p.key === activePeriod;
+                return `<button onclick="setPeriod('${p.key}')" class="px-3 py-1.5 rounded-full font-bold text-center transition-all whitespace-nowrap ${active ? 'bg-taskBlue text-white' : 'bg-white/5 text-textSub hover:bg-white/10'}">${p.label}</button>`;
+            }).join('');
+        }
+
+        function renderAll() {
+            renderPeriodButtons();
+            renderLeaderboardAndChart();
+            renderTodayHistory();
+            renderAdminLists();
+            const sel = document.getElementById('userPerforming');
+            sel.innerHTML = '<option value="">Hvem er du?</option>' + members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            const savedUser = loadSelectedUser();
+            if (savedUser && members.find(m => String(m.id) === savedUser)) {
+                sel.value = savedUser;
+            }
+        }
+
+        function renderLeaderboardAndChart() {
+            const statusEl = document.getElementById('leadStatus');
+            const legendEl = document.getElementById('chartLegend');
+            if (!members.length) { statusEl.innerText = "Legg til medlemmer!"; return; }
+
+            const membersWithPeriodPoints = members.map(m => ({ ...m, periodPoints: getPointsForPeriod(m.id, activePeriod) }));
+            const sorted = [...membersWithPeriodPoints].sort((a,b) => b.periodPoints - a.periodPoints);
+            statusEl.innerText = sorted[0].periodPoints > 0 ? `${sorted[0].name.split(' ')[0]} leder!` : "Ingen poeng ennå";
+
+            legendEl.innerHTML = membersWithPeriodPoints.map(m => `<div class="flex items-center gap-2 cursor-pointer hover:opacity-80 py-1.5 px-2 -mx-2 rounded-lg text-base" onclick="showMemberHistory(${m.id})"><span class="w-3 h-3 rounded-full flex-shrink-0" style="background:${m.color}"></span>${m.name.split(' ')[0]}, ${m.periodPoints}p</div>`).join('');
+
+            const ctx = document.getElementById('pointsChart').getContext('2d');
+            if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: users.map(u => u.name),
                     datasets: [{
-                        data: dataValues,
-                        backgroundColor: users.map(u => u.color),
+                        data: membersWithPeriodPoints.map(m => m.periodPoints || 1),
+                        backgroundColor: membersWithPeriodPoints.map(m => m.color),
                         borderWidth: 0,
-                        hoverOffset: 10
+                        hoverOffset: 0
                     }]
                 },
-                options: {
-                    cutout: '75%',
-                    plugins: {
-                        legend: { display: false }
-                    },
+                options: { 
+                    cutout: '80%', 
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }, 
+                    animation: { duration: 500 },
                     onClick: () => {
                         playIntroSound(7);
                     }
                 }
             });
-
-            const legendContainer = document.getElementById('chartLegend');
-            legendContainer.innerHTML = '';
-            users.forEach(u => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/5';
-                div.innerHTML = `
-                    <div class="w-2 h-2 rounded-full" style="background: ${u.color}"></div>
-                    <span class="font-bold">${pointsData[u.id] || 0}p</span>
-                    <span class="text-text-sub text-xs">${u.name}</span>
-                `;
-                legendContainer.appendChild(div);
-            });
         }
 
-        function renderHistory() {
-            const list = document.getElementById('historyList');
-            list.innerHTML = '';
+        function renderTodayHistory() {
+            const hEl = document.getElementById('todayHistory');
+            const headingEl = document.getElementById('logHeading');
+            const periodLabel = periods.find(p => p.key === activePeriod).label;
+            headingEl.innerText = periodLabel;
 
-            history.slice(0, 15).forEach(item => {
-                const user = users.find(u => u.id === item.userId);
-                const dateStr = new Date(item.date).toLocaleDateString('no-NO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                
-                const div = document.createElement('div');
-                div.className = 'history-item card p-4 flex justify-between items-center transition-all active:scale-95';
-                div.onclick = () => renderCalendar(item.id, new Date(item.date).getFullYear(), new Date(item.date).getMonth(), new Date(item.date));
-                div.innerHTML = `
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5 font-bold text-accent">
-                            +${item.points}
-                        </div>
-                        <div>
-                            <p class="font-bold text-white">${item.task.charAt(0).toUpperCase() + item.task.slice(1)}</p>
-                            <p class="text-xs text-text-sub">${user ? user.name : 'Ukjent'} • ${dateStr}</p>
+            const log = filterHistory(activePeriod).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (!log.length) { hEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`; return; }
+
+            const dateGroups = {};
+            const dateGroupOrder = [];
+            log.forEach(h => {
+                const d = new Date(h.date);
+                const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                if (!dateGroups[dk]) { dateGroups[dk] = { date: d, items: [] }; dateGroupOrder.push(dk); }
+                dateGroups[dk].items.push(h);
+            });
+            const _today = new Date();
+            const _yesterday = new Date(_today.getTime() - 86400000);
+
+            const rendered = dateGroupOrder.map(dk => {
+                const grp = dateGroups[dk];
+                const gd = grp.date;
+                let dlabel;
+                if (gd.toDateString() === _today.toDateString()) dlabel = 'I dag';
+                else if (gd.toDateString() === _yesterday.toDateString()) dlabel = 'I går';
+                else { dlabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' }); dlabel = dlabel.charAt(0).toUpperCase() + dlabel.slice(1); }
+
+                const itemsHtml = grp.items.map(h => {
+                    const m = members.find(mem => String(mem.id) === String(h.userId));
+                    if(!m) return "";
+                    const init = m.name.substring(0,2).toUpperCase();
+                    const taskCount = h.tasks.length;
+                    const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
+                    return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
+                    <div class="swipe-actions">
+                        <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
+                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
+                        <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
+                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm leading-tight font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                            <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel}</p>
                         </div>
                     </div>
-                    <i class="fas fa-calendar-alt text-text-sub opacity-30 text-sm"></i>
-                `;
-                list.appendChild(div);
+                    </div>`;
+                }).join('');
+                if (!itemsHtml.trim()) return '';
+                return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
+            }).join('');
+            hEl.innerHTML = rendered.trim() || `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`;
+            initSwipeHandlers();
+        }
+
+        function showTaskSelection() {
+            document.getElementById('taskSelectionScreen').classList.remove('hidden');
+            document.getElementById('mainScreen').classList.add('hidden');
+            selectedTasksOnScreen = [];
+            renderTaskBubbles();
+        }
+
+        function hideTaskSelection() {
+            document.getElementById('taskSelectionScreen').classList.add('hidden');
+            document.getElementById('mainScreen').classList.remove('hidden');
+        }
+
+        function renderTaskBubbles() {
+            document.getElementById('taskBubbleContainer').innerHTML = taskTypes.map(t => {
+                const sel = selectedTasksOnScreen.includes(t.id);
+                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm transition-all flex items-center gap-3 ${sel ? 'bg-taskCyan text-appBg font-bold scale-95 shadow-lg' : 'bg-cardBg border border-white/5 text-textMain'}">
+                ${sel ? '<i class="fas fa-check-circle text-appBg"></i>' : `<i class="fas fa-${t.icon || 'star'} text-taskBlue"></i>`}
+                <span>${t.name}</span>
+                <span class="text-[10px] ${sel ? 'text-appBg/60' : 'text-textSub'}">${t.points}p</span>
+                </button>`;
+            }).join('');
+        }
+
+        function toggleT(id) {
+            selectedTasksOnScreen = selectedTasksOnScreen.includes(id) ? selectedTasksOnScreen.filter(i => i !== id) : [...selectedTasksOnScreen, id];
+            renderTaskBubbles();
+        }
+
+        function saveRegisteredTasks() {
+            const uIdInput = document.getElementById('userPerforming').value;
+            if(!uIdInput) return alert("Hvem er du? Velg navn øverst.");
+            const uId = isNaN(uIdInput) ? uIdInput : parseInt(uIdInput);
+            if(!selectedTasksOnScreen.length) return alert("Velg minst én ting du har gjort!");
+            
+            const selected = taskTypes.filter(t => selectedTasksOnScreen.includes(t.id));
+            const totalP = selected.reduce((sum, t) => sum + t.points, 0);
+            const taskNames = selected.map(t => t.name);
+
+            history.push({
+                id: Date.now(),
+                userId: uId,
+                tasks: taskNames,
+                points: totalP,
+                date: new Date().toISOString()
             });
-        }
 
-        function openContributionModal() {
-            document.getElementById('contributionModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeContributionModal() {
-            document.getElementById('contributionModal').classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-
-        function submitContribution() {
-            const userId = document.getElementById('userPerforming').value;
-            const task = document.getElementById('taskType').value;
-            if (!userId || !task) return;
-            db.ref('history').push({ userId, task, points: taskPoints[task], date: new Date().toISOString() });
-            closeContributionModal();
-        }
-
-        function toggleHistory() { document.getElementById('historySection').classList.toggle('hidden'); }
-
-        function sync() {
-            history.forEach(h => {
-                db.ref('history/' + h.id).update({ date: h.date });
-            });
-        }
-
-        function renderCalendar(historyId, year, month, selectedDate) {
-            const overlay = document.createElement('div');
-            overlay.id = 'miniCalendarOverlay';
-            overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm';
-            
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const monthName = new Date(year, month).toLocaleString('no-NO', { month: 'long', year: 'numeric' });
-            
-            let daysHtml = '';
-            const offset = firstDay === 0 ? 6 : firstDay - 1;
-            for (let i = 0; i < offset; i++) daysHtml += '<div></div>';
-            
-            for (let i = 1; i <= daysInMonth; i++) {
-                const isSelected = i === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
-                daysHtml += `<div onclick="selectCalendarDate('${historyId}', ${year}, ${month}, ${i})" class="cal-day cursor-pointer transition-all ${isSelected ? 'bg-accent text-white font-bold' : 'hover:bg-white/10 text-text-sub'}">${i}</div>`;
-            }
-
-            overlay.innerHTML = `<div class="card p-6 w-full max-w-xs border border-white/10" onclick="event.stopPropagation()"><div class="flex justify-between items-center mb-4"><h4 class="text-sm font-bold uppercase tracking-widest text-accent">${monthName}</h4><div class="flex gap-2"><button onclick="renderCalendar('${historyId}', ${month === 0 ? year - 1 : year}, ${month === 0 ? 11 : month - 1}, new Date('${selectedDate.toISOString()}'))" class="text-text-sub px-2 py-1"><i class="fas fa-chevron-left"></i></button><button onclick="renderCalendar('${historyId}', ${month === 11 ? year + 1 : year}, ${month === 11 ? 0 : month + 1}, new Date('${selectedDate.toISOString()}'))" class="text-text-sub px-2 py-1"><i class="fas fa-chevron-right"></i></button></div></div><div class="cal-grid">${daysHtml}</div></div>`;
-            overlay.onclick = closeCalendar;
-            document.body.appendChild(overlay);
-        }
-
-        function selectCalendarDate(historyId, year, month, day) {
-            const h = history.find(i => i.id === historyId);
-            if (!h) return;
-            const oldDate = new Date(h.date);
-            h.date = new Date(year, month, day, oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds()).toISOString();
             sync();
-            closeCalendar();
+            hideTaskSelection();
         }
 
-        function closeCalendar() { const o = document.getElementById('miniCalendarOverlay'); if (o) o.remove(); }
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+        }
+
+        function closeAllModals() {
+            ['adminModal', 'memberModal', 'taskAdminModal', 'confirmModal', 'renameModal'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+        }
+
+        function addMember() {
+            const name = document.getElementById('newMemberName').value.trim();
+            if (!name) return;
+            const id = Date.now();
+            const color = allColors[members.length % allColors.length];
+            members.push({ id, name, color });
+            document.getElementById('newMemberName').value = '';
+            sync();
+        }
+
+        function addTaskType() {
+            const name = document.getElementById('newTaskName').value.trim();
+            const points = parseInt(document.getElementById('newTaskPoints').value);
+            if (!name || isNaN(points)) return;
+            taskTypes.push({ id: Date.now(), name, points, icon: 'star' });
+            document.getElementById('newTaskName').value = '';
+            document.getElementById('newTaskPoints').value = '';
+            sync();
+        }
+
+        function renderAdminLists() {
+            const mList = document.getElementById('manageMembersList');
+            mList.innerHTML = members.map(m => `<div class="admin-swipe-item" data-id="${m.id}" oncontextmenu="showMemberContextMenu(event, ${m.id})"><div class="swipe-actions"><button class="action-edit" onclick="openRenameMember(${m.id})"><i class="fas fa-pen"></i></button><button class="action-delete" onclick="confirmDeleteMember(${m.id})"><i class="fas fa-trash"></i></button></div><div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5 mb-1"><div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full" style="background:${m.color}"></span><span class="font-medium">${m.name}</span></div><button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleMemberDesktopMenu(${m.id}, this)"><i class="fas fa-ellipsis-v"></i></button></div></div>`).join('');
+
+            const tList = document.getElementById('manageTasksList');
+            tList.innerHTML = taskTypes.map(t => `<div class="admin-swipe-item" data-id="${t.id}" oncontextmenu="showTaskContextMenu(event, ${t.id})"><div class="swipe-actions"><button class="action-edit" onclick="openRenameTask(${t.id})"><i class="fas fa-pen"></i></button><button class="action-delete" onclick="confirmDeleteTask(${t.id})"><i class="fas fa-trash"></i></button></div><div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5 mb-1"><div class="flex-1"><div><span class="font-medium">${t.name}</span> <span class="text-textSub text-xs ml-2">${t.points}p</span></div></div><button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleTaskDesktopMenu(${t.id}, this)"><i class="fas fa-ellipsis-v"></i></button></div></div>`).join('');
+            initSwipeHandlers();
+        }
+
+        function confirmDeleteMember(id) {
+            const m = members.find(mem => mem.id === id);
+            showConfirm(`Vil du slette ${m.name}? All historikk vil bli stående, men uten navn.`, () => {
+                members = members.filter(mem => mem.id !== id);
+                sync();
+                closeConfirm();
+            });
+        }
+
+        function confirmDeleteTask(id) {
+            const t = taskTypes.find(task => task.id === id);
+            showConfirm(`Vil du slette oppgaven "${t.name}"?`, () => {
+                taskTypes = taskTypes.filter(task => task.id !== id);
+                sync();
+                closeConfirm();
+            });
+        }
+
+        function showConfirm(msg, onConfirm) {
+            document.getElementById('confirmMessage').innerText = msg;
+            const btn = document.getElementById('confirmExecuteBtn');
+            btn.onclick = onConfirm;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirm() { document.getElementById('confirmModal').classList.add('hidden'); }
+
+        let renameContext = null;
+        function openRenameMember(id) {
+            const m = members.find(mem => mem.id === id);
+            renameContext = { type: 'member', id };
+            document.getElementById('renameModalTitle').innerText = "Endre navn";
+            document.getElementById('renameInput').value = m.name;
+            document.getElementById('renamePointsRow').classList.add('hidden');
+            document.getElementById('renameModal').classList.remove('hidden');
+        }
+
+        function openRenameTask(id) {
+            const t = taskTypes.find(task => task.id === id);
+            renameContext = { type: 'task', id };
+            document.getElementById('renameModalTitle').innerText = "Endre oppgave";
+            document.getElementById('renameInput').value = t.name;
+            document.getElementById('renamePointsInput').value = t.points;
+            document.getElementById('renamePointsRow').classList.remove('hidden');
+            document.getElementById('renameModal').classList.remove('hidden');
+        }
+
+        function executeRename() {
+            const newVal = document.getElementById('renameInput').value.trim();
+            if (!newVal) return;
+            if (renameContext.type === 'member') {
+                const m = members.find(mem => mem.id === renameContext.id);
+                if (m) m.name = newVal;
+            } else {
+                const t = taskTypes.find(task => task.id === renameContext.id);
+                const p = parseInt(document.getElementById('renamePointsInput').value);
+                if (t) { t.name = newVal; t.points = isNaN(p) ? t.points : p; }
+            }
+            sync();
+            closeRenameModal();
+        }
+
+        function closeRenameModal() { document.getElementById('renameModal').classList.add('hidden'); renameContext = null; }
+
+        function undo(id) {
+            history = history.filter(h => h.id !== id);
+            sync();
+        }
+
+        function showMemberHistory(memberId) {
+            const m = members.find(mem => mem.id === memberId);
+            if (!m) return;
+            const screen = document.getElementById('memberHistoryScreen');
+            document.getElementById('memberHistoryTitle').innerText = m.name;
+            document.getElementById('memberHistoryName').innerText = m.name;
+            const avatar = document.getElementById('memberHistoryAvatar');
+            avatar.innerText = m.name.substring(0,2).toUpperCase();
+            avatar.style.background = m.color;
+
+            const mHistory = history.filter(h => String(h.userId) === String(memberId)).sort((a,b) => new Date(b.date) - new Date(a.date));
+            const totalP = mHistory.reduce((s, h) => s + h.points, 0);
+            const totalT = mHistory.length;
+
+            document.getElementById('memberHistoryStats').innerHTML = `
+                <div class="bg-appBg p-3 rounded-2xl border border-white/5 text-center"><p class="text-[10px] text-textSub uppercase font-bold">Total poeng</p><p class="text-xl font-bold text-accent">${totalP}</p></div>
+                <div class="bg-appBg p-3 rounded-2xl border border-white/5 text-center"><p class="text-[10px] text-textSub uppercase font-bold">Bidrag</p><p class="text-xl font-bold text-taskCyan">${totalT}</p></div>
+            `;
+
+            renderMemberHistoryLog(memberId, 'all');
+            screen.classList.remove('hidden');
+        }
+
+        function renderMemberHistoryLog(memberId, key) {
+            const container = document.getElementById('memberHistoryLog');
+            const btns = document.getElementById('memberHistoryPeriodButtons');
+            
+            btns.innerHTML = periods.map(p => {
+                const active = p.key === key;
+                return `<button onclick="renderMemberHistoryLog(${memberId}, '${p.key}')" class="px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${active ? 'bg-taskBlue text-white' : 'bg-white/5 text-textSub'}">${p.label}</button>`;
+            }).join('');
+
+            const { start, end } = getDateRange(key);
+            const filtered = history.filter(h => String(h.userId) === String(memberId) && new Date(h.date) >= start && new Date(h.date) < end).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            if (!filtered.length) { container.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen bidrag i denne perioden.</p>`; return; }
+
+            container.innerHTML = filtered.map(h => {
+                const d = new Date(h.date);
+                const ds = d.toLocaleDateString('no-NO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                return `<div class="bg-cardBg p-4 rounded-2xl border border-white/5 flex justify-between items-center shadow-md"><div><p class="text-sm font-medium leading-tight">${h.tasks.join(', ')}</p><p class="text-[10px] text-textSub uppercase mt-0.5">${ds}</p></div><div class="text-accent font-bold">+${h.points}</div></div>`;
+            }).join('');
+        }
+
+        function closeMemberHistory() { document.getElementById('memberHistoryScreen').classList.add('hidden'); }
+
         function saveSelectedUser(userId) { if (userId) localStorage.setItem('kollektiv_user', userId); }
         function loadSelectedUser() { return localStorage.getItem('kollektiv_user'); }
         document.getElementById('userPerforming').addEventListener('change', function() { saveSelectedUser(this.value); });
 
-        init();
+        let swipeStartY = 0, swipeStartX = 0, activeSwipeItem = null;
+        function initSwipeHandlers() {
+            const items = document.querySelectorAll('.swipe-item, .admin-swipe-item');
+            items.forEach(item => {
+                const content = item.querySelector('.swipe-content');
+                const actions = item.querySelector('.swipe-actions');
+                let startX = 0, currentX = 0, isSwiping = false;
+
+                item.ontouchstart = (e) => { startX = e.touches[0].clientX; isSwiping = true; actions.style.visibility = 'visible'; };
+                item.ontouchmove = (e) => {
+                    if (!isSwiping) return;
+                    currentX = e.touches[0].clientX - startX;
+                    if (currentX < -10) {
+                        const move = Math.max(currentX, -150);
+                        content.style.transform = `translateX(${move}px)`;
+                        e.preventDefault();
+                    } else {
+                        content.style.transform = '';
+                    }
+                };
+                item.ontouchend = () => {
+                    isSwiping = false;
+                    if (currentX < -60) {
+                        content.style.transform = `translateX(-144px)`;
+                    } else {
+                        content.style.transform = '';
+                        setTimeout(() => actions.style.visibility = 'hidden', 200);
+                    }
+                };
+            });
+        }
+
+        function openDatePicker(id) {
+            const h = history.find(item => item.id === id);
+            if (!h) return;
+            renderMiniCalendar(id, new Date(h.date));
+        }
+
+        function renderMiniCalendar(historyId, selectedDate) {
+            const overlay = document.createElement('div');
+            overlay.className = 'mini-calendar-overlay';
+            overlay.onclick = () => overlay.remove();
+            
+            const now = new Date();
+            let viewMonth = selectedDate.getMonth();
+            let viewYear = selectedDate.getFullYear();
+
+            const draw = (m, y) => {
+                const firstDay = new Date(y, m, 1).getDay();
+                const daysInMonth = new Date(y, m + 1, 0).getDate();
+                const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+                const monthName = new Date(y, m).toLocaleString('no-NO', { month: 'long' });
+                
+                let html = `<div class="mini-calendar" onclick="event.stopPropagation()">
+                    <div class="cal-header">
+                        <button class="text-textSub p-2" onclick="changeM(-1)"><i class="fas fa-chevron-left"></i></button>
+                        <div class="flex flex-col items-center">
+                            <span class="text-white font-bold capitalize">${monthName}</span>
+                            <div class="cal-year-select relative">
+                                <button onclick="changeY(-1)"><i class="fas fa-minus scale-75"></i></button>
+                                <span class="cal-year-label" onclick="toggleYearDropdown()">${y}</span>
+                                <button onclick="changeY(1)"><i class="fas fa-plus scale-75"></i></button>
+                                <div id="calYearDropdown" class="cal-year-dropdown hidden"></div>
+                            </div>
+                        </div>
+                        <button class="text-textSub p-2" onclick="changeM(1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="cal-grid">
+                        ${['M','T','O','T','F','L','S'].map(d => `<div class="cal-day-label">${d}</div>`).join('')}
+                        ${Array(startOffset).fill('<div class="cal-day other-month"></div>').join('')}`;
+                
+                for(let d=1; d<=daysInMonth; d++) {
+                    const date = new Date(y, m, d);
+                    const isFuture = date > now;
+                    const isSel = date.toDateString() === selectedDate.toDateString();
+                    const isToday = date.toDateString() === now.toDateString();
+                    html += `<div class="cal-day ${isFuture?'future':''} ${isSel?'selected':''} ${isToday?'today':''}" onclick="selectD(${y},${m},${d})">${d}</div>`;
+                }
+                html += `</div><button onclick="this.closest('.mini-calendar-overlay').remove()" class="w-full mt-6 py-3 rounded-xl bg-white/5 text-textSub font-bold text-sm">Avbryt</button></div>`;
+                overlay.innerHTML = html;
+            };
+
+            window.changeM = (v) => { viewMonth += v; if(viewMonth>11){viewMonth=0; viewYear++;} if(viewMonth<0){viewMonth=11; viewYear--;} draw(viewMonth, viewYear); };
+            window.changeY = (v) => { viewYear += v; draw(viewMonth, viewYear); };
+            window.toggleYearDropdown = () => {
+                const d = document.getElementById('calYearDropdown');
+                d.classList.toggle('hidden');
+                if(!d.classList.contains('hidden')) {
+                    const startY = 2023, endY = new Date().getFullYear();
+                    let yHtml = '';
+                    for(let i=endY; i>=startY; i--) yHtml += `<button class="${i===viewYear?'active-year':''}" onclick="selectY(${i})">${i}</button>`;
+                    d.innerHTML = yHtml;
+                }
+            };
+            window.selectY = (y) => { viewYear = y; draw(viewMonth, viewYear); };
+            window.selectD = (y, m, d) => {
+                const h = history.find(item => item.id === historyId);
+                const oldDate = new Date(h.date);
+                const newDate = new Date(y, m, d, oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds());
+                h.date = newDate.toISOString();
+                sync();
+                overlay.remove();
+            };
+
+            draw(viewMonth, viewYear);
+            document.body.appendChild(overlay);
+        }
+
+        let currentDesktopMenu = null;
+        function toggleDesktopMenu(id, btn) {
+            if (currentDesktopMenu) { currentDesktopMenu.remove(); if (currentDesktopMenu.dataset.id == id) { currentDesktopMenu = null; return; } }
+            const rect = btn.getBoundingClientRect();
+            const menu = document.createElement('div');
+            menu.className = 'desktop-dropdown';
+            menu.dataset.id = id;
+            menu.style.top = `${rect.bottom + 8}px`;
+            menu.style.left = `${rect.right - 160}px`;
+            menu.innerHTML = `<button onclick="openDatePicker(${id})"><i class="fas fa-calendar-alt"></i> Endre dato</button><button class="delete-option" onclick="undo(${id})"><i class="fas fa-trash-alt"></i> Slett bidrag</button>`;
+            document.body.appendChild(menu);
+            currentDesktopMenu = menu;
+            btn.classList.add('active');
+            const close = (e) => { if(!menu.contains(e.target) && e.target !== btn) { menu.remove(); btn.classList.remove('active'); document.removeEventListener('click', close); currentDesktopMenu = null; } };
+            setTimeout(() => document.addEventListener('click', close), 10);
+        }
+
+        function toggleMemberDesktopMenu(id, btn) {
+            if (currentDesktopMenu) { currentDesktopMenu.remove(); if (currentDesktopMenu.dataset.id == id) { currentDesktopMenu = null; return; } }
+            const rect = btn.getBoundingClientRect();
+            const menu = document.createElement('div');
+            menu.className = 'desktop-dropdown';
+            menu.dataset.id = id;
+            menu.style.top = `${rect.bottom + 8}px`;
+            menu.style.left = `${rect.right - 160}px`;
+            menu.innerHTML = `<button onclick="openRenameMember(${id})"><i class="fas fa-pen"></i> Endre navn</button><button class="delete-option" onclick="confirmDeleteMember(${id})"><i class="fas fa-trash-alt"></i> Slett medlem</button>`;
+            document.body.appendChild(menu);
+            currentDesktopMenu = menu;
+            btn.classList.add('active');
+            const close = (e) => { if(!menu.contains(e.target) && e.target !== btn) { menu.remove(); btn.classList.remove('active'); document.removeEventListener('click', close); currentDesktopMenu = null; } };
+            setTimeout(() => document.addEventListener('click', close), 10);
+        }
+
+        function toggleTaskDesktopMenu(id, btn) {
+            if (currentDesktopMenu) { currentDesktopMenu.remove(); if (currentDesktopMenu.dataset.id == id) { currentDesktopMenu = null; return; } }
+            const rect = btn.getBoundingClientRect();
+            const menu = document.createElement('div');
+            menu.className = 'desktop-dropdown';
+            menu.dataset.id = id;
+            menu.style.top = `${rect.bottom + 8}px`;
+            menu.style.left = `${rect.right - 160}px`;
+            menu.innerHTML = `<button onclick="openRenameTask(${id})"><i class="fas fa-pen"></i> Endre oppgave</button><button class="delete-option" onclick="confirmDeleteTask(${id})"><i class="fas fa-trash-alt"></i> Slett oppgave</button>`;
+            document.body.appendChild(menu);
+            currentDesktopMenu = menu;
+            btn.classList.add('active');
+            const close = (e) => { if(!menu.contains(e.target) && e.target !== btn) { menu.remove(); btn.classList.remove('active'); document.removeEventListener('click', close); currentDesktopMenu = null; } };
+            setTimeout(() => document.addEventListener('click', close), 10);
+        }
+
+        function showContextMenu(e, id) { if (window.innerWidth > 1024) { e.preventDefault(); const items = document.querySelectorAll('.swipe-item'); items.forEach(item => { if (item.dataset.id == id) { const btn = item.querySelector('.desktop-menu-btn'); toggleDesktopMenu(id, btn); } }); } }
+        function showMemberContextMenu(e, id) { if (window.innerWidth > 1024) { e.preventDefault(); const items = document.querySelectorAll('.admin-swipe-item'); items.forEach(item => { if (item.dataset.id == id) { const btn = item.querySelector('.desktop-menu-btn'); toggleMemberDesktopMenu(id, btn); } }); } }
+        function showTaskContextMenu(e, id) { if (window.innerWidth > 1024) { e.preventDefault(); const items = document.querySelectorAll('.admin-swipe-item'); items.forEach(item => { if (item.dataset.id == id) { const btn = item.querySelector('.desktop-menu-btn'); toggleTaskDesktopMenu(id, btn); } }); } }
     </script>
 </body>
 </html>
