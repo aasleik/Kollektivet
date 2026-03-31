@@ -997,19 +997,34 @@
             if (!t) return;
             openRenameModal('Endre oppgave', t.name, function(newName, newPoints) {
                 let changed = false;
+                const oldNameLower = t.name.toLowerCase();
+                const newNameLower = newName.toLowerCase();
+                const oldPoints = t.points;
+
                 if (newName !== t.name) {
-                    const oldNameLower = t.name.toLowerCase();
-                    const newNameLower = newName.toLowerCase();
                     t.name = newName;
                     history.forEach(h => {
                         h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn);
                     });
                     changed = true;
                 }
-                if (newPoints !== undefined && !isNaN(newPoints) && newPoints > 0 && newPoints !== t.points) {
+
+                if (newPoints !== undefined && !isNaN(newPoints) && newPoints > 0 && newPoints !== oldPoints) {
                     t.points = newPoints;
+                    // Oppdater poeng i historikken for alle bidrag som inneholder denne oppgaven
+                    history.forEach(h => {
+                        let contributionChanged = false;
+                        h.tasks.forEach(taskName => {
+                            if (taskName === newNameLower) {
+                                // Juster totalpoeng for bidraget: fjern gamle poeng, legg til nye
+                                h.points = (h.points - oldPoints) + newPoints;
+                                contributionChanged = true;
+                            }
+                        });
+                    });
                     changed = true;
                 }
+
                 if (changed) sync();
             }, true, t.points);
         }
