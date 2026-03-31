@@ -200,13 +200,10 @@
 
         let history = [];
         let myChart = null;
-
-        // --- ENDRING HER: Variabel for å sjekke om lyden spiller ---
-        let isPlaying = false;
+        let isPlaying = false; // Hindrer dobbel spilling
 
         function playIntroSound(durationSeconds = 7) {
-            // Sjekker om lyden allerede spiller
-            if (isPlaying) return;
+            if (isPlaying) return; // Avbryt hvis lyden allerede spiller
             
             isPlaying = true;
             const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3'; 
@@ -214,11 +211,15 @@
             
             audio.volume = 0;
             audio.play().then(() => {
+                // Fade inn
                 let fadeIn = setInterval(() => {
-                    if (audio.volume < 0.9) audio.volume += 0.1;
+                    // --- ENDRET: Maks volum er nå 0.5 i stedet for 0.9 ---
+                    if (audio.volume < 0.5) audio.volume += 0.1;
                     else clearInterval(fadeIn);
                 }, 100);
 
+                // Fade ut og stopp
+                // --- ENDRET: Starter fade-ut litt tidligere (etter durationSeconds * 1000 - 1500ms) ---
                 setTimeout(() => {
                     let fadeOut = setInterval(() => {
                         if (audio.volume > 0.1) audio.volume -= 0.1;
@@ -226,14 +227,13 @@
                             audio.pause();
                             audio.currentTime = 0;
                             clearInterval(fadeOut);
-                            // --- ENDRING HER: Tillater lyden å starte på nytt når den er ferdig ---
-                            isPlaying = false;
+                            isPlaying = false; // Tillat ny spilling når ferdig
                         }
                     }, 100);
-                }, durationSeconds * 1000);
+                }, durationSeconds * 1000 - 1500); 
             }).catch(e => {
-                isPlaying = false;
-                console.log("Avspilling blokkert");
+                isPlaying = false; // Nullstill hvis blokkert
+                console.log("Blokkert");
             });
         }
 
@@ -326,12 +326,11 @@
 
             history.slice(0, 15).forEach(item => {
                 const user = users.find(u => u.id === item.userId);
-                const date = new Date(item.date);
-                const dateStr = date.toLocaleDateString('no-NO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const dateStr = new Date(item.date).toLocaleDateString('no-NO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
                 
                 const div = document.createElement('div');
                 div.className = 'history-item card p-4 flex justify-between items-center transition-all active:scale-95';
-                div.onclick = () => renderCalendar(item.id, date.getFullYear(), date.getMonth(), date);
+                div.onclick = () => renderCalendar(item.id, new Date(item.date).getFullYear(), new Date(item.date).getMonth(), new Date(item.date));
                 div.innerHTML = `
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5 font-bold text-accent">
@@ -361,24 +360,12 @@
         function submitContribution() {
             const userId = document.getElementById('userPerforming').value;
             const task = document.getElementById('taskType').value;
-            const points = taskPoints[task];
-
             if (!userId || !task) return;
-
-            db.ref('history').push({
-                userId,
-                task,
-                points,
-                date: new Date().toISOString()
-            });
-
+            db.ref('history').push({ userId, task, points: taskPoints[task], date: new Date().toISOString() });
             closeContributionModal();
         }
 
-        function toggleHistory() {
-            const section = document.getElementById('historySection');
-            section.classList.toggle('hidden');
-        }
+        function toggleHistory() { document.getElementById('historySection').classList.toggle('hidden'); }
 
         function sync() {
             history.forEach(h => {
@@ -401,24 +388,11 @@
             
             for (let i = 1; i <= daysInMonth; i++) {
                 const isSelected = i === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
-                daysHtml += `<div onclick="selectCalendarDate('${historyId}', ${year}, ${month}, ${i})" 
-                    class="cal-day cursor-pointer transition-all ${isSelected ? 'bg-accent text-white font-bold' : 'hover:bg-white/10 text-text-sub'}">
-                    ${i}
-                </div>`;
+                daysHtml += `<div onclick="selectCalendarDate('${historyId}', ${year}, ${month}, ${i})" class="cal-day cursor-pointer transition-all ${isSelected ? 'bg-accent text-white font-bold' : 'hover:bg-white/10 text-text-sub'}">${i}</div>`;
             }
 
-            overlay.innerHTML = `
-                <div class="card p-6 w-full max-w-xs shadow-2xl border border-white/10" onclick="event.stopPropagation()">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-sm font-bold uppercase tracking-widest text-accent">${monthName}</h4>
-                        <div class="flex gap-2">
-                            <button onclick="renderCalendar('${historyId}', ${month === 0 ? year - 1 : year}, ${month === 0 ? 11 : month - 1}, new Date('${selectedDate.toISOString()}'))" class="text-text-sub px-2 py-1"><i class="fas fa-chevron-left"></i></button>
-                            <button onclick="renderCalendar('${historyId}', ${month === 11 ? year + 1 : year}, ${month === 11 ? 0 : month + 1}, new Date('${selectedDate.toISOString()}'))" class="text-text-sub px-2 py-1"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                    </div>
-                    <div class="cal-grid">${daysHtml}</div>
-                </div>`;
-            overlay.addEventListener('click', closeCalendar);
+            overlay.innerHTML = `<div class="card p-6 w-full max-w-xs border border-white/10" onclick="event.stopPropagation()"><div class="flex justify-between items-center mb-4"><h4 class="text-sm font-bold uppercase tracking-widest text-accent">${monthName}</h4><div class="flex gap-2"><button onclick="renderCalendar('${historyId}', ${month === 0 ? year - 1 : year}, ${month === 0 ? 11 : month - 1}, new Date('${selectedDate.toISOString()}'))" class="text-text-sub px-2 py-1"><i class="fas fa-chevron-left"></i></button><button onclick="renderCalendar('${historyId}', ${month === 11 ? year + 1 : year}, ${month === 11 ? 0 : month + 1}, new Date('${selectedDate.toISOString()}'))" class="text-text-sub px-2 py-1"><i class="fas fa-chevron-right"></i></button></div></div><div class="cal-grid">${daysHtml}</div></div>`;
+            overlay.onclick = closeCalendar;
             document.body.appendChild(overlay);
         }
 
@@ -426,28 +400,15 @@
             const h = history.find(i => i.id === historyId);
             if (!h) return;
             const oldDate = new Date(h.date);
-            const newDate = new Date(year, month, day, oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds());
-            h.date = newDate.toISOString();
+            h.date = new Date(year, month, day, oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds()).toISOString();
             sync();
             closeCalendar();
         }
 
-        function closeCalendar() {
-            const overlay = document.getElementById('miniCalendarOverlay');
-            if (overlay) overlay.remove();
-        }
-
-        function saveSelectedUser(userId) {
-            if (userId) localStorage.setItem('kollektiv_user', userId);
-        }
-
-        function loadSelectedUser() {
-            return localStorage.getItem('kollektiv_user');
-        }
-
-        document.getElementById('userPerforming').addEventListener('change', function() {
-            saveSelectedUser(this.value);
-        });
+        function closeCalendar() { const o = document.getElementById('miniCalendarOverlay'); if (o) o.remove(); }
+        function saveSelectedUser(userId) { if (userId) localStorage.setItem('kollektiv_user', userId); }
+        function loadSelectedUser() { return localStorage.getItem('kollektiv_user'); }
+        document.getElementById('userPerforming').addEventListener('change', function() { saveSelectedUser(this.value); });
 
         init();
     </script>
