@@ -150,14 +150,14 @@
         </button>
     </div>
 
-    <div id="adminModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onclick="closeAllModals()">
-        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
+    <div id="adminModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onclick="closeAllModals()" ontouchend="closeAllModals()">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()" ontouchend="event.stopPropagation()">
             <h3 class="text-lg font-bold mb-6 text-center">Innstillinger</h3>
             <div class="space-y-3">
                 <button onclick="closeAllModals(); toggleModal('memberModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Legg til medlemmer</span><i class="fas fa-user-friends text-accent"></i></button>
                 <button onclick="closeAllModals(); toggleModal('taskAdminModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Legg til oppgaver</span><i class="fas fa-tasks text-accent"></i></button>
             </div>
-            <button onclick="toggleModal('adminModal')" class="mt-8 w-full text-textSub text-sm font-bold">Lukk meny</button>
+            <button onclick="toggleModal('adminModal')" ontouchend="toggleModal('adminModal')" class="mt-8 w-full text-textSub text-sm font-bold">Lukk meny</button>
         </div>
     </div>
 
@@ -307,16 +307,22 @@
         settingsAudio.loop = true;
         settingsAudio.volume = 0;
 
-        // Unlocker for innstillingsmusikk på mobil
+        // Unlocker for mobil: låser opp lyd ved første touch uten å forstyrre avspilling
+        let settingsAudioUnlocked = false;
         const unlockSettingsAudio = () => {
-            settingsAudio.play().then(() => {
-                settingsAudio.pause();
-                settingsAudio.currentTime = 0;
-            }).catch(() => {});
-            document.removeEventListener('click', unlockSettingsAudio);
+            if (settingsAudioUnlocked) return;
+            settingsAudioUnlocked = true;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const buf = ctx.createBuffer(1, 1, 22050);
+                const src = ctx.createBufferSource();
+                src.buffer = buf;
+                src.connect(ctx.destination);
+                src.start(0);
+                ctx.close();
+            } catch(e) {}
             document.removeEventListener('touchstart', unlockSettingsAudio);
         };
-        document.addEventListener('click', unlockSettingsAudio);
         document.addEventListener('touchstart', unlockSettingsAudio);
 
         function startSettingsMusic() {
@@ -337,9 +343,9 @@
         }
 
         function stopSettingsMusic() {
-            if (!settingsMusicPlaying && settingsAudio.paused) return;
             settingsMusicPlaying = false;
             if (settingsFadeInterval) { clearInterval(settingsFadeInterval); settingsFadeInterval = null; }
+            if (settingsAudio.paused) return;
             settingsFadeInterval = setInterval(() => {
                 if (settingsAudio.volume > 0.01) {
                     settingsAudio.volume = Math.max(0, settingsAudio.volume - 0.01);
