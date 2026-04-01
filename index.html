@@ -326,13 +326,13 @@
             settingsAudio.volume = 0;
             settingsAudio.play().then(() => {
                 settingsFadeInterval = setInterval(() => {
-                    if (settingsAudio.volume < 0.18) {
-                        settingsAudio.volume = Math.min(0.2, settingsAudio.volume + 0.01);
+                    if (settingsAudio.volume < 0.1) {
+                        settingsAudio.volume = Math.min(0.18, settingsAudio.volume + 0.005);
                     } else {
                         clearInterval(settingsFadeInterval);
                         settingsFadeInterval = null;
                     }
-                }, 50);
+                }, 100);
             }).catch(() => { settingsMusicPlaying = false; });
         }
 
