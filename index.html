@@ -297,6 +297,62 @@
         }
         // --- SLUTT LYD-LOGIKK ---
 
+        // --- INNSTILLINGSMUSIKK: FADE INN/UT VED TANNHJUL ---
+        // Lim inn URL til ønsket sang her:
+        const SETTINGS_MUSIC_URL = 'LINN INN URL HER';
+
+        let settingsMusicPlaying = false;
+        let settingsFadeInterval = null;
+        const settingsAudio = new Audio(SETTINGS_MUSIC_URL);
+        settingsAudio.loop = true;
+        settingsAudio.volume = 0;
+
+        // Unlocker for innstillingsmusikk på mobil
+        const unlockSettingsAudio = () => {
+            settingsAudio.play().then(() => {
+                settingsAudio.pause();
+                settingsAudio.currentTime = 0;
+            }).catch(() => {});
+            document.removeEventListener('click', unlockSettingsAudio);
+            document.removeEventListener('touchstart', unlockSettingsAudio);
+        };
+        document.addEventListener('click', unlockSettingsAudio);
+        document.addEventListener('touchstart', unlockSettingsAudio);
+
+        function startSettingsMusic() {
+            if (settingsMusicPlaying) return;
+            settingsMusicPlaying = true;
+            if (settingsFadeInterval) { clearInterval(settingsFadeInterval); settingsFadeInterval = null; }
+            settingsAudio.volume = 0;
+            settingsAudio.play().then(() => {
+                settingsFadeInterval = setInterval(() => {
+                    if (settingsAudio.volume < 0.18) {
+                        settingsAudio.volume = Math.min(0.2, settingsAudio.volume + 0.01);
+                    } else {
+                        clearInterval(settingsFadeInterval);
+                        settingsFadeInterval = null;
+                    }
+                }, 50);
+            }).catch(() => { settingsMusicPlaying = false; });
+        }
+
+        function stopSettingsMusic() {
+            if (!settingsMusicPlaying) return;
+            if (settingsFadeInterval) { clearInterval(settingsFadeInterval); settingsFadeInterval = null; }
+            settingsFadeInterval = setInterval(() => {
+                if (settingsAudio.volume > 0.01) {
+                    settingsAudio.volume = Math.max(0, settingsAudio.volume - 0.01);
+                } else {
+                    clearInterval(settingsFadeInterval);
+                    settingsFadeInterval = null;
+                    settingsAudio.pause();
+                    settingsAudio.currentTime = 0;
+                    settingsMusicPlaying = false;
+                }
+            }, 50);
+        }
+        // --- SLUTT INNSTILLINGSMUSIKK ---
+
         const firebaseConfig = {
             apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
             authDomain: "kollektivet-fc493.firebaseapp.com",
@@ -537,8 +593,18 @@
             if (idx > -1) { history.splice(idx, 1); sync(); }
         }
 
-        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
-        function closeAllModals() { ['adminModal', 'memberModal', 'taskAdminModal', 'confirmModal', 'renameModal'].forEach(id => document.getElementById(id).classList.add('hidden')); }
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            const wasHidden = el.classList.contains('hidden');
+            el.classList.toggle('hidden');
+            if (id === 'adminModal') {
+                if (wasHidden) { startSettingsMusic(); } else { stopSettingsMusic(); }
+            }
+        }
+        function closeAllModals() {
+            ['adminModal', 'memberModal', 'taskAdminModal', 'confirmModal', 'renameModal'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            stopSettingsMusic();
+        }
 
         function addMember() {
             const input = document.getElementById('newMemberName');
