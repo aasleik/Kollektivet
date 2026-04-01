@@ -109,7 +109,7 @@
             <div id="periodButtons" class="flex flex-wrap gap-2 text-[11px] text-textSub justify-center mb-4">
             </div>
             <div class="flex justify-center">
-                <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;" onclick="playIntroSound()"></canvas>
+                <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;"></canvas>
             </div>
             <div id="chartLegend" class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm sm:text-base font-medium mt-4 text-textSub"></div>
         </section>
@@ -150,14 +150,14 @@
         </button>
     </div>
 
-    <div id="adminModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onclick="closeAllModals()" ontouchend="closeAllModals()">
-        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()" ontouchend="event.stopPropagation()">
+    <div id="adminModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onclick="closeAllModals()">
+        <div class="bg-cardBg rounded-3xl p-6 w-full max-w-sm border border-white/10" onclick="event.stopPropagation()">
             <h3 class="text-lg font-bold mb-6 text-center">Innstillinger</h3>
             <div class="space-y-3">
                 <button onclick="closeAllModals(); toggleModal('memberModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Legg til medlemmer</span><i class="fas fa-user-friends text-accent"></i></button>
                 <button onclick="closeAllModals(); toggleModal('taskAdminModal')" class="w-full bg-appBg p-5 rounded-2xl flex justify-between items-center border border-white/5 font-medium"><span>Legg til oppgaver</span><i class="fas fa-tasks text-accent"></i></button>
             </div>
-            <button onclick="toggleModal('adminModal')" ontouchend="toggleModal('adminModal')" class="mt-8 w-full text-textSub text-sm font-bold">Lukk meny</button>
+            <button onclick="toggleModal('adminModal')" class="mt-8 w-full text-textSub text-sm font-bold">Lukk meny</button>
         </div>
     </div>
 
@@ -244,126 +244,10 @@
     </div>
 
     <script>
-        // --- LYD-LOGIKK: ROBUST LØSNING FOR MOBIL/DESKTOP ---
-        let isAudioPlaying = false;
-        const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3';
-        const globalAudio = new Audio(audioUrl);
-
-        // "Unlocker" for mobil: Aktiverer lyden ved første brukerinteraksjon på skjermen
-        const unlockAudio = () => {
-            globalAudio.play().then(() => {
-                globalAudio.pause();
-                globalAudio.currentTime = 0;
-            }).catch(() => {});
-            document.removeEventListener('click', unlockAudio);
-            document.removeEventListener('touchstart', unlockAudio);
-        };
-        document.addEventListener('click', unlockAudio);
-        document.addEventListener('touchstart', unlockAudio);
-
-        function playIntroSound() {
-            // KRITERIE: Hvis den allerede spiller, gjør ingenting (ingen overlapp eller omstart)
-            if (isAudioPlaying) return;
-
-            isAudioPlaying = true;
-            globalAudio.volume = 0;
-            globalAudio.currentTime = 0;
-
-            globalAudio.play().then(() => {
-                // Fade inn (opp til 0.3 volum over ca 0.5 sekunder)
-                let fadeIn = setInterval(() => {
-                    if (globalAudio.volume < 0.25) {
-                        globalAudio.volume = Math.min(0.3, globalAudio.volume + 0.05);
-                    } else {
-                        clearInterval(fadeIn);
-                    }
-                }, 100);
-
-                // Spill i 7 sekunder før fade-out starter
-                setTimeout(() => {
-                    let fadeOut = setInterval(() => {
-                        if (globalAudio.volume > 0.05) {
-                            globalAudio.volume -= 0.05;
-                        } else {
-                            clearInterval(fadeOut);
-                            globalAudio.pause();
-                            isAudioPlaying = false; // Nå er den klar for å kunne startes på nytt ved neste klikk
-                        }
-                    }, 100);
-                }, 7000);
-            }).catch(() => {
-                isAudioPlaying = false;
-            });
-        }
-        // --- SLUTT LYD-LOGIKK ---
-
-        // --- INNSTILLINGSMUSIKK: FADE INN/UT VED TANNHJUL ---
-        // Lim inn URL til ønsket sang her:
-        const SETTINGS_MUSIC_URL = 'LINN INN URL HER';
-
-        let settingsMusicPlaying = false;
-        let settingsFadeInterval = null;
-        const settingsAudio = new Audio(SETTINGS_MUSIC_URL);
-        settingsAudio.loop = true;
-        settingsAudio.volume = 0;
-
-        // Unlocker for mobil: låser opp lyd ved første touch uten å forstyrre avspilling
-        let settingsAudioUnlocked = false;
-        const unlockSettingsAudio = () => {
-            if (settingsAudioUnlocked) return;
-            settingsAudioUnlocked = true;
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const buf = ctx.createBuffer(1, 1, 22050);
-                const src = ctx.createBufferSource();
-                src.buffer = buf;
-                src.connect(ctx.destination);
-                src.start(0);
-                ctx.close();
-            } catch(e) {}
-            document.removeEventListener('touchstart', unlockSettingsAudio);
-        };
-        document.addEventListener('touchstart', unlockSettingsAudio);
-
-        function startSettingsMusic() {
-            if (settingsMusicPlaying) return;
-            if (settingsFadeInterval) { clearInterval(settingsFadeInterval); settingsFadeInterval = null; }
-            settingsMusicPlaying = true;
-            settingsAudio.volume = 0;
-            settingsAudio.play().then(() => {
-                settingsFadeInterval = setInterval(() => {
-                    if (settingsAudio.volume < 0.18) {
-                        settingsAudio.volume = Math.min(0.2, settingsAudio.volume + 0.01);
-                    } else {
-                        clearInterval(settingsFadeInterval);
-                        settingsFadeInterval = null;
-                    }
-                }, 50);
-            }).catch(() => { settingsMusicPlaying = false; });
-        }
-
-        function stopSettingsMusic() {
-            settingsMusicPlaying = false;
-            if (settingsFadeInterval) { clearInterval(settingsFadeInterval); settingsFadeInterval = null; }
-            if (settingsAudio.paused) return;
-            settingsFadeInterval = setInterval(() => {
-                if (settingsAudio.volume > 0.01) {
-                    settingsAudio.volume = Math.max(0, settingsAudio.volume - 0.01);
-                } else {
-                    clearInterval(settingsFadeInterval);
-                    settingsFadeInterval = null;
-                    settingsAudio.pause();
-                    settingsAudio.currentTime = 0;
-                    settingsAudio.volume = 0;
-                }
-            }, 50);
-        }
-        // --- SLUTT INNSTILLINGSMUSIKK ---
-
         const firebaseConfig = {
             apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
             authDomain: "kollektivet-fc493.firebaseapp.com",
-            databaseURL: "https://kollektivet-fc493-default-rtdb.europe-west1.firebasedatabase.app",
+  	    databaseURL: "https://kollektivet-fc493-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "kollektivet-fc493",
             storageBucket: "kollektivet-fc493.firebasestorage.app",
             messagingSenderId: "131176107292",
@@ -537,335 +421,711 @@
                     const taskCount = h.tasks.length;
                     const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
                     return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
-                                <div class="swipe-actions">
-                                    <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
-                                    <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
-                                </div>
-                                <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
-                                    <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
-                                    <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm leading-tight font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
-                                        <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel}</p>
-                                    </div>
-                                </div>
-                            </div>`;
+                    <div class="swipe-actions">
+                        <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
+                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex gap-4 items-center p-3 rounded-2xl">
+                        <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
+                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm leading-tight font-medium">${m.name.split(' ')[0]} har <span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                            <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel}</p>
+                        </div>
+                    </div>
+                </div>`;
                 }).join('');
+
                 if (!itemsHtml.trim()) return '';
                 return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
             }).join('');
+
             hEl.innerHTML = rendered.trim() || `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert – ${periodLabel.toLowerCase()}.</p>`;
             initSwipeHandlers();
         }
 
-        function showTaskSelection() {
-            document.getElementById('taskSelectionScreen').classList.remove('hidden');
+        function showTaskSelection() { 
+            document.getElementById('taskSelectionScreen').classList.remove('hidden'); 
             document.getElementById('mainScreen').classList.add('hidden');
             selectedTasksOnScreen = [];
-            renderTaskBubbles();
+            renderTaskBubbles(); 
         }
-
-        function hideTaskSelection() {
-            document.getElementById('taskSelectionScreen').classList.add('hidden');
+        
+        function hideTaskSelection() { 
+            document.getElementById('taskSelectionScreen').classList.add('hidden'); 
             document.getElementById('mainScreen').classList.remove('hidden');
         }
 
         function renderTaskBubbles() {
             document.getElementById('taskBubbleContainer').innerHTML = taskTypes.map(t => {
                 const sel = selectedTasksOnScreen.includes(t.id);
-                return `<button onclick="toggleT(${t.id})" class="px-5 py-3 rounded-2xl font-bold transition-all border-2 ${sel ? 'bg-accent border-accent text-white scale-105 shadow-lg shadow-accent/30' : 'bg-cardBg border-white/5 text-textSub hover:border-white/20'}">${t.name} <span class="opacity-60 text-xs ml-1">${t.points}p</span></button>`;
+                return `<button onclick="toggleT(${t.id})" class="px-5 py-4 rounded-2xl text-sm transition-all flex items-center gap-3 ${sel ? 'bg-taskCyan text-appBg font-bold scale-95 shadow-lg' : 'bg-cardBg border border-white/5 text-textMain'}">
+                    ${sel ? '<i class="fas fa-check-circle text-appBg"></i>' : `<i class="fas fa-${t.icon || 'star'} text-taskBlue"></i>`}
+                    <span>${t.name}</span>
+                    <span class="text-[10px] ${sel ? 'text-appBg/60' : 'text-textSub'}">${t.points}p</span>
+                </button>`;
             }).join('');
         }
 
-        function toggleT(tid) {
-            const idx = selectedTasksOnScreen.indexOf(tid);
-            if (idx > -1) selectedTasksOnScreen.splice(idx, 1);
-            else selectedTasksOnScreen.push(tid);
+        function toggleT(id) {
+            selectedTasksOnScreen = selectedTasksOnScreen.includes(id) ? selectedTasksOnScreen.filter(i => i !== id) : [...selectedTasksOnScreen, id];
             renderTaskBubbles();
         }
 
         function saveRegisteredTasks() {
-            const userId = document.getElementById('userPerforming').value;
-            if (!userId) { alert("Hvem er du?"); return; }
-            if (selectedTasksOnScreen.length === 0) { alert("Velg minst én oppgave."); return; }
-            const selectedTypes = taskTypes.filter(t => selectedTasksOnScreen.includes(t.id));
-            const total = selectedTypes.reduce((s, t) => s + t.points, 0);
-            history.push({ id: Date.now(), userId, tasks: selectedTypes.map(t => t.name), points: total, date: new Date().toISOString() });
-            sync();
-            hideTaskSelection();
+            const uId = parseInt(document.getElementById('userPerforming').value);
+            if(!uId) return alert("Hvem er du? Velg navn øverst.");
+            if(!selectedTasksOnScreen.length) return alert("Velg minst én ting du har gjort!");
+
+            const m = members.find(mem => mem.id === uId);
+            const now = new Date().toISOString();
+            const taskNames = [];
+            let totalPoints = 0;
+            selectedTasksOnScreen.forEach(tid => {
+                const t = taskTypes.find(tt => tt.id === tid);
+                taskNames.push(t.name.toLowerCase());
+                totalPoints += t.points;
+                m.points += t.points;
+            });
+            history.unshift({ id: Date.now(), userId: uId, tasks: taskNames, points: totalPoints, date: now });
+            sync(); hideTaskSelection();
+        }
+
+        let pendingDeleteAction = null;
+
+        function customConfirm(message, action) {
+            document.getElementById('confirmMessage').innerText = message;
+            document.getElementById('confirmModal').classList.remove('hidden');
+            pendingDeleteAction = action;
+            document.getElementById('confirmExecuteBtn').onclick = function() {
+                pendingDeleteAction();
+                closeConfirm();
+            };
+        }
+
+        function closeConfirm() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            pendingDeleteAction = null;
         }
 
         function undo(id) {
-            const idx = history.findIndex(h => h.id === id);
-            if (idx > -1) { history.splice(idx, 1); sync(); }
+            closeAllSwipes();
+            const h = history.find(i => i.id === id);
+            if(!h) return;
+            const m = members.find(mem => mem.id === h.userId);
+            if(m) m.points = Math.max(0, m.points - h.points);
+            history = history.filter(i => i.id !== id);
+            sync();
         }
 
-        function toggleModal(id) {
-            const el = document.getElementById(id);
-            const wasHidden = el.classList.contains('hidden');
-            el.classList.toggle('hidden');
-            if (id === 'adminModal') {
-                if (wasHidden) { startSettingsMusic(); } else { stopSettingsMusic(); }
-            }
-        }
-        function closeAllModals() {
-            ['adminModal', 'memberModal', 'taskAdminModal', 'confirmModal', 'renameModal'].forEach(id => document.getElementById(id).classList.add('hidden'));
-            stopSettingsMusic();
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+        function closeAllModals() { ['adminModal','memberModal','taskAdminModal'].forEach(id => document.getElementById(id).classList.add('hidden')); }
+
+        function renderAdminLists() {
+            document.getElementById('manageMembersList').innerHTML = members.map(m => `<div class="admin-swipe-item" data-admin-id="member-${m.id}" oncontextmenu="showAdminContextMenu(event, 'member', ${m.id})">
+                <div class="swipe-actions">
+                    <button class="action-edit" onclick="startRenameMember(${m.id})"><i class="fas fa-pen text-base"></i><span>Endre</span></button>
+                    <button class="action-delete" onclick="deleteMember(${m.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                </div>
+                <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
+                    <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full shrink-0" style="background:${m.color}"></span><span>${m.name}</span></div>
+                    <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleAdminDesktopMenu('member', ${m.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
+                </div>
+            </div>`).join('');
+            document.getElementById('manageTasksList').innerHTML = taskTypes.map(t => `<div class="admin-swipe-item" data-admin-id="task-${t.id}" oncontextmenu="showAdminContextMenu(event, 'task', ${t.id})">
+                <div class="swipe-actions">
+                    <button class="action-edit" onclick="startRenameTask(${t.id})"><i class="fas fa-pen text-base"></i><span>Endre</span></button>
+                    <button class="action-delete" onclick="deleteTaskType(${t.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                </div>
+                <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
+                    <div><span class="block">${t.name}</span><span class="text-[10px] text-textSub">${t.points} poeng</span></div>
+                    <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleAdminDesktopMenu('task', ${t.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
+                </div>
+            </div>`).join('');
+            initAdminSwipeHandlers();
         }
 
         function addMember() {
-            const input = document.getElementById('newMemberName');
-            const name = input.value.trim();
-            if (name) {
-                const used = new Set(members.map(m => m.color));
-                const available = allColors.filter(c => !used.has(c));
-                members.push({ id: Date.now(), name, color: available[0] || allColors[0] });
-                input.value = '';
-                sync();
-            }
+            const n = document.getElementById('newMemberName').value.trim();
+            if(!n) return;
+            const usedColors = members.map(m => m.color);
+            const available = allColors.filter(c => !usedColors.includes(c));
+            const chosenColor = available.length > 0 ? available[0] : allColors[members.length % allColors.length];
+            members.push({ id: Date.now(), name: n, points: 0, color: chosenColor });
+            document.getElementById('newMemberName').value = ''; sync();
         }
 
+        function deleteMember(id) { closeAllAdminSwipes(); customConfirm("Vil du slette dette medlemmet og alle tilhørende data?", () => { members = members.filter(m => m.id !== id); sync(); }); }
+        
         function addTaskType() {
-            const nameI = document.getElementById('newTaskName');
-            const pointsI = document.getElementById('newTaskPoints');
-            const name = nameI.value.trim();
-            const points = parseInt(pointsI.value);
-            if (name && !isNaN(points)) {
-                taskTypes.push({ id: Date.now(), name, points });
-                nameI.value = ''; pointsI.value = '';
-                sync();
+            const n = document.getElementById('newTaskName').value.trim();
+            const p = parseInt(document.getElementById('newTaskPoints').value);
+            if(n && p) { 
+                taskTypes.push({ id: Date.now(), name: n, points: p, icon: 'check-circle' }); 
+                document.getElementById('newTaskName').value = '';
+                document.getElementById('newTaskPoints').value = '';
+                sync(); 
             }
         }
-
-        function renderAdminLists() {
-            document.getElementById('manageMembersList').innerHTML = members.map(m => `<div class="admin-swipe-item" data-id="${m.id}">
-                        <div class="swipe-actions">
-                            <button class="action-edit" onclick="openRenameModal('member', ${m.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
-                            <button class="action-delete" onclick="confirmDelete('member', ${m.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
-                        </div>
-                        <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
-                            <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${m.id}, this, 'member')"><i class="fas fa-ellipsis-v"></i></button>
-                            <div class="flex items-center gap-3">
-                                <span class="w-3 h-3 rounded-full" style="background:${m.color}"></span>
-                                <span class="font-medium">${m.name}</span>
-                            </div>
-                        </div>
-                    </div>`).join('');
-            document.getElementById('manageTasksList').innerHTML = taskTypes.map(t => `<div class="admin-swipe-item" data-id="${t.id}">
-                        <div class="swipe-actions">
-                            <button class="action-edit" onclick="openRenameModal('task', ${t.id})"><i class="fas fa-pen"></i><span>Endre</span></button>
-                            <button class="action-delete" onclick="confirmDelete('task', ${t.id})"><i class="fas fa-trash"></i><span>Slett</span></button>
-                        </div>
-                        <div class="swipe-content flex justify-between items-center bg-appBg p-4 rounded-xl border border-white/5">
-                            <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${t.id}, this, 'task')"><i class="fas fa-ellipsis-v"></i></button>
-                            <div class="flex-1">
-                                <p class="font-medium leading-tight">${t.name}</p>
-                                <p class="text-[10px] text-textSub uppercase font-bold mt-0.5">${t.points} poeng</p>
-                            </div>
-                        </div>
-                    </div>`).join('');
-            initSwipeHandlers();
+        function deleteTaskType(id) { 
+            closeAllAdminSwipes(); 
+            customConfirm("Vil du fjerne denne oppgaven fra listen?", () => { 
+                taskTypes = taskTypes.filter(t => t.id !== id); 
+                recalculateHistoryPoints();
+                sync(); 
+            }); 
         }
 
-        let confirmAction = null;
-        function confirmDelete(type, id) {
-            const modal = document.getElementById('confirmModal');
-            const msg = document.getElementById('confirmMessage');
-            confirmAction = () => {
-                if (type === 'member') { members = members.filter(m => m.id !== id); history = history.filter(h => String(h.userId) !== String(id)); }
-                else if (type === 'task') { taskTypes = taskTypes.filter(t => t.id !== id); }
-                sync();
-                closeConfirm();
-            };
-            msg.innerText = type === 'member' ? "Sletter du medlemmet, slettes også all deres historikk." : "Denne oppgaven vil bli fjernet fra listen.";
-            modal.classList.remove('hidden');
-            document.getElementById('confirmExecuteBtn').onclick = confirmAction;
-        }
-        function closeConfirm() { document.getElementById('confirmModal').classList.add('hidden'); }
-
-        let renameContext = null;
-        function openRenameModal(type, id) {
-            renameContext = { type, id };
-            const input = document.getElementById('renameInput');
-            const title = document.getElementById('renameModalTitle');
-            const pointsRow = document.getElementById('renamePointsRow');
-            if (type === 'member') {
-                const m = members.find(m => m.id === id);
-                input.value = m.name;
-                title.innerText = "Endre navn";
-                pointsRow.classList.add('hidden');
-            } else {
-                const t = taskTypes.find(t => t.id === id);
-                input.value = t.name;
-                document.getElementById('renamePointsInput').value = t.points;
-                title.innerText = "Endre oppgave";
-                pointsRow.classList.remove('hidden');
-            }
-            document.getElementById('renameModal').classList.remove('hidden');
-        }
-        function closeRenameModal() { document.getElementById('renameModal').classList.add('hidden'); }
-        function executeRename() {
-            const name = document.getElementById('renameInput').value.trim();
-            if (!name) return;
-            if (renameContext.type === 'member') {
-                const m = members.find(m => m.id === renameContext.id);
-                if (m) m.name = name;
-            } else {
-                const t = taskTypes.find(t => t.id === renameContext.id);
-                const pts = parseInt(document.getElementById('renamePointsInput').value);
-                if (t && !isNaN(pts)) { t.name = name; t.points = pts; }
-            }
-            sync();
-            closeRenameModal();
-        }
-
-        function showMemberHistory(id) {
-            const m = members.find(m => m.id === id);
-            if (!m) return;
-            const hScreen = document.getElementById('memberHistoryScreen');
-            document.getElementById('memberHistoryTitle').innerText = m.name.split(' ')[0];
-            document.getElementById('memberHistoryName').innerText = m.name;
-            const avatar = document.getElementById('memberHistoryAvatar');
-            avatar.innerText = m.name.substring(0,2).toUpperCase();
-            avatar.style.background = m.color;
-
-            const periods = ['thisWeek', 'thisMonth', 'all'];
-            const labels = {'thisWeek': 'Uke', 'thisMonth': 'Mnd', 'all': 'Total'};
-            document.getElementById('memberHistoryStats').innerHTML = periods.map(p => `
-                <div class="bg-appBg/50 p-3 rounded-2xl border border-white/5">
-                    <p class="text-[10px] text-textSub uppercase font-bold mb-1">${labels[p]}</p>
-                    <p class="text-xl font-black text-white">${getPointsForPeriod(m.id, p)}<span class="text-[10px] ml-1 opacity-40">P</span></p>
-                </div>
-            `).join('');
-
-            const mHistory = history.filter(h => String(h.userId) === String(id)).sort((a,b) => new Date(b.date) - new Date(a.date));
-            const logEl = document.getElementById('memberHistoryLog');
-            if (mHistory.length === 0) {
-                logEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen loggført historikk ennå.</p>`;
-            } else {
-                logEl.innerHTML = mHistory.map(h => {
-                    const d = new Date(h.date);
-                    const ds = d.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
-                    return `<div class="bg-cardBg p-4 rounded-2xl flex justify-between items-center border border-white/5">
-                        <div class="flex-1">
-                            <p class="text-sm font-bold text-white mb-0.5">${h.tasks.join(', ')}</p>
-                            <p class="text-[10px] text-textSub uppercase font-bold">${ds} · ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}</p>
-                        </div>
-                        <div class="text-right"><p class="text-taskCyan font-black">+${h.points}</p></div>
-                    </div>`;
-                }).join('');
-            }
-            hScreen.classList.remove('hidden');
-        }
-        function closeMemberHistory() { document.getElementById('memberHistoryScreen').classList.add('hidden'); }
-
-        function initSwipeHandlers() {
-            const items = document.querySelectorAll('.swipe-item, .admin-swipe-item');
-            items.forEach(item => {
-                let startX = 0, currentX = 0, isDragging = false;
-                const content = item.querySelector('.swipe-content');
-                const actions = item.querySelector('.swipe-actions');
-                const threshold = 50;
-
-                item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; isDragging = true; actions.style.visibility = 'visible'; content.style.transition = 'none'; }, {passive: true});
-                item.addEventListener('touchmove', e => {
-                    if (!isDragging) return;
-                    currentX = e.touches[0].clientX - startX;
-                    if (currentX > 0) currentX = 0;
-                    if (currentX < -150) currentX = -150 - (Math.abs(currentX + 150) * 0.2);
-                    content.style.transform = `translateX(${currentX}px)`;
-                }, {passive: true});
-                item.addEventListener('touchend', () => {
-                    isDragging = false;
-                    content.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
-                    if (currentX < -threshold) { content.style.transform = `translateX(-144px)`; }
-                    else { content.style.transform = `translateX(0)`; setTimeout(() => { if (!isDragging) actions.style.visibility = 'hidden'; }, 300); }
-                    currentX = 0;
+        function recalculateHistoryPoints() {
+            history.forEach(h => {
+                let newTotal = 0;
+                h.tasks.forEach(taskName => {
+                    const type = taskTypes.find(tt => tt.name.toLowerCase() === taskName.toLowerCase());
+                    if (type) newTotal += type.points;
                 });
+                h.points = newTotal;
+            });
+            members.forEach(m => {
+                m.points = history.filter(h => h.userId === m.id).reduce((sum, h) => sum + h.points, 0);
             });
         }
 
-        function toggleDesktopMenu(id, btn, type = 'history') {
-            const existing = document.querySelector('.desktop-dropdown');
-            if (existing) {
-                const parentId = existing.getAttribute('data-parent-id');
-                existing.remove();
-                document.querySelectorAll('.desktop-menu-btn').forEach(b => b.classList.remove('active'));
-                if (parentId === String(id)) return;
+        let activeMemberHistoryPeriod = 'today';
+        let activeMemberHistoryId = null;
+
+        function showMemberHistory(memberId) {
+            activeMemberHistoryId = memberId;
+            activeMemberHistoryPeriod = 'today';
+            renderMemberHistory();
+            document.getElementById('memberHistoryScreen').classList.remove('hidden');
+            document.getElementById('mainScreen').classList.add('hidden');
+        }
+
+        function closeMemberHistory() {
+            document.getElementById('memberHistoryScreen').classList.add('hidden');
+            document.getElementById('mainScreen').classList.remove('hidden');
+            activeMemberHistoryId = null;
+        }
+
+        function setMemberHistoryPeriod(key) {
+            activeMemberHistoryPeriod = key;
+            renderMemberHistory();
+        }
+
+        function renderMemberHistory() {
+            const m = members.find(mem => mem.id === activeMemberHistoryId);
+            if (!m) return;
+
+            const firstName = m.name.split(' ')[0];
+            const init = m.name.substring(0, 2).toUpperCase();
+
+            document.getElementById('memberHistoryTitle').innerText = firstName;
+            document.getElementById('memberHistoryName').innerText = m.name;
+            const avatar = document.getElementById('memberHistoryAvatar');
+            avatar.style.background = m.color;
+            avatar.innerText = init;
+
+            const statsEl = document.getElementById('memberHistoryStats');
+            const activePeriodLabel = periods.find(p => p.key === activeMemberHistoryPeriod).label;
+            const periodHistory = filterHistory(activeMemberHistoryPeriod).filter(h => h.userId === m.id);
+            const totalPoints = periodHistory.reduce((sum, h) => sum + h.points, 0);
+            const totalTasks = periodHistory.reduce((sum, h) => sum + h.tasks.length, 0);
+            statsEl.innerHTML = `
+                <div class="bg-appBg rounded-xl p-3 border border-white/5 text-center">
+                    <p class="text-[10px] text-textSub uppercase font-bold mb-1">Oppgaver</p>
+                    <p class="text-lg font-bold text-taskCyan">${totalTasks}</p>
+                    <p class="text-[10px] text-textSub">${activePeriodLabel}</p>
+                </div>
+                <div class="bg-appBg rounded-xl p-3 border border-white/5 text-center">
+                    <p class="text-[10px] text-textSub uppercase font-bold mb-1">Poeng</p>
+                    <p class="text-lg font-bold text-taskCyan">${totalPoints}p</p>
+                    <p class="text-[10px] text-textSub">${activePeriodLabel}</p>
+                </div>`;
+
+            const btnEl = document.getElementById('memberHistoryPeriodButtons');
+            btnEl.innerHTML = periods.map(p => {
+                const active = p.key === activeMemberHistoryPeriod;
+                return `<button onclick="setMemberHistoryPeriod('${p.key}')" class="px-3 py-1.5 rounded-full font-bold text-xs transition-all whitespace-nowrap ${active ? 'bg-taskBlue text-white' : 'bg-cardBg border border-white/5 text-textSub hover:bg-white/5'}">${p.label}</button>`;
+            }).join('');
+
+            const logEl = document.getElementById('memberHistoryLog');
+            const log = filterHistory(activeMemberHistoryPeriod)
+                        .filter(h => h.userId === m.id)
+                        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (!log.length) {
+                logEl.innerHTML = `<p class="text-center text-textSub text-sm py-10 opacity-50">Ingen oppgaver registrert.</p>`;
+                return;
             }
 
+            const dateGroups2 = {};
+            const dateGroupOrder2 = [];
+            log.forEach(h => {
+                const d = new Date(h.date);
+                const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                if (!dateGroups2[dk]) { dateGroups2[dk] = { date: d, items: [] }; dateGroupOrder2.push(dk); }
+                dateGroups2[dk].items.push(h);
+            });
+            const _today2 = new Date();
+            const _yesterday2 = new Date(_today2.getTime() - 86400000);
+
+            logEl.innerHTML = dateGroupOrder2.map(dk => {
+                const grp = dateGroups2[dk];
+                const gd = grp.date;
+                let dlabel;
+                if (gd.toDateString() === _today2.toDateString()) dlabel = 'I dag';
+                else if (gd.toDateString() === _yesterday2.toDateString()) dlabel = 'I går';
+                else { dlabel = gd.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' }); dlabel = dlabel.charAt(0).toUpperCase() + dlabel.slice(1); }
+
+                const itemsHtml = grp.items.map(h => {
+                    const date = new Date(h.date);
+                    const timeStr = date.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = date.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
+                    const taskCount = h.tasks.length;
+                    const taskLabel = taskCount > 1 ? `${taskCount} oppgaver` : '1 oppgave';
+                    return `<div class="swipe-item rounded-2xl" data-id="${h.id}" oncontextmenu="showContextMenu(event, ${h.id})">
+                    <div class="swipe-actions">
+                        <button class="action-date" onclick="openDatePicker(${h.id})"><i class="fas fa-calendar-alt text-base"></i><span>Dato</span></button>
+                        <button class="action-delete" onclick="undo(${h.id})"><i class="fas fa-trash-alt text-base"></i><span>Slett</span></button>
+                    </div>
+                    <div class="swipe-content flex gap-4 items-center p-3 bg-cardBg rounded-2xl border border-white/5">
+                        <button class="desktop-menu-btn" onclick="event.stopPropagation(); toggleDesktopMenu(${h.id}, this)"><i class="fas fa-ellipsis-v"></i></button>
+                        <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shrink-0" style="background:${m.color}">${init}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm leading-tight font-medium"><span class="text-taskCyan">${h.tasks.join(', ')}</span></p>
+                            <p class="text-[10px] text-textSub uppercase mt-0.5">+${h.points} poeng · ${taskLabel} · ${dateStr} ${timeStr}</p>
+                        </div>
+                    </div>
+                </div>`;
+                }).join('');
+
+                if (!itemsHtml.trim()) return '';
+                return `<div class="mb-2"><p class="text-xs font-bold text-textSub uppercase tracking-widest mb-2 px-1">${dlabel}</p><div class="space-y-2">${itemsHtml}</div></div>`;
+            }).join('');
+            initSwipeHandlers();
+        }
+
+        let currentlyOpenSwipe = null;
+        let currentDesktopMenu = null;
+        function toggleDesktopMenu(id, btn) {
+            closeDesktopMenu();
+            const existing = btn.parentElement.querySelector('.desktop-dropdown');
+            if (existing) { existing.remove(); btn.classList.remove('active'); return; }
             btn.classList.add('active');
+            const dropdown = document.createElement('div');
+            dropdown.className = 'desktop-dropdown';
+            dropdown.innerHTML = `
+                <button onclick="event.stopPropagation(); closeDesktopMenu(); openDatePicker(${id})"><i class="fas fa-calendar-alt" style="color:#3B82F6"></i> Endre dato</button>
+                <button class="delete-option" onclick="event.stopPropagation(); closeDesktopMenu(); undo(${id})"><i class="fas fa-trash-alt"></i> Slett bidrag</button>`;
+            document.body.appendChild(dropdown);
             const rect = btn.getBoundingClientRect();
-            const menu = document.createElement('div');
-            menu.className = 'desktop-dropdown';
-            menu.setAttribute('data-parent-id', id);
-            menu.style.top = `${rect.bottom + 8}px`;
-            menu.style.left = `${rect.left - 130}px`;
-
-            if (type === 'history') {
-                menu.innerHTML = `
-                    <button onclick="openDatePicker(${id})"><i class="fas fa-calendar-alt"></i> Endre dato</button>
-                    <button class="delete-option" onclick="undo(${id})"><i class="fas fa-trash-alt"></i> Slett</button>
-                `;
-            } else {
-                menu.innerHTML = `
-                    <button onclick="openRenameModal('${type}', ${id})"><i class="fas fa-pen"></i> Endre</button>
-                    <button class="delete-option" onclick="confirmDelete('${type}', ${id})"><i class="fas fa-trash-alt"></i> Slett</button>
-                `;
+            dropdown.style.top = (rect.bottom + 4) + 'px';
+            dropdown.style.left = (rect.right - 160) + 'px';
+            currentDesktopMenu = { dropdown, btn };
+        }
+        function closeDesktopMenu() {
+            if (currentDesktopMenu) {
+                currentDesktopMenu.dropdown.remove();
+                if (currentDesktopMenu.btn) currentDesktopMenu.btn.classList.remove('active');
+                currentDesktopMenu = null;
             }
+        }
+        document.addEventListener('click', function(e) {
+            if (currentDesktopMenu && !e.target.closest('.desktop-dropdown') && !e.target.closest('.desktop-menu-btn')) {
+                closeDesktopMenu();
+            }
+        }, true);
+        document.addEventListener('touchstart', function(e) {
+            if (currentDesktopMenu && !e.target.closest('.desktop-dropdown') && !e.target.closest('.desktop-menu-btn')) {
+                closeDesktopMenu();
+            }
+        }, true);
 
-            document.body.appendChild(menu);
-            const closeMenu = (e) => { if (!menu.contains(e.target) && e.target !== btn) { menu.remove(); btn.classList.remove('active'); document.removeEventListener('click', closeMenu); } };
-            setTimeout(() => document.addEventListener('click', closeMenu), 10);
+        function showContextMenu(e, id) {
+            if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+            e.preventDefault();
+            closeDesktopMenu();
+            const dropdown = document.createElement('div');
+            dropdown.className = 'desktop-dropdown';
+            dropdown.innerHTML = `
+                <button onclick="event.stopPropagation(); closeDesktopMenu(); openDatePicker(${id})"><i class="fas fa-calendar-alt" style="color:#3B82F6"></i> Endre dato</button>
+                <button class="delete-option" onclick="event.stopPropagation(); closeDesktopMenu(); undo(${id})"><i class="fas fa-trash-alt"></i> Slett bidrag</button>`;
+            document.body.appendChild(dropdown);
+            dropdown.style.top = e.clientY + 'px';
+            dropdown.style.left = e.clientX + 'px';
+            const rect = dropdown.getBoundingClientRect();
+            if (rect.right > window.innerWidth) dropdown.style.left = (window.innerWidth - rect.width - 8) + 'px';
+            if (rect.bottom > window.innerHeight) dropdown.style.top = (window.innerHeight - rect.height - 8) + 'px';
+            currentDesktopMenu = { dropdown, btn: null };
+        }
+
+        function closeAllSwipes() {
+            document.querySelectorAll('.swipe-item').forEach(item => {
+                const c = item.querySelector('.swipe-content');
+                c.style.transition = 'transform 0.25s ease';
+                c.style.transform = 'translateX(0)';
+                const a = item.querySelector('.swipe-actions');
+                if (a) setTimeout(() => { a.style.visibility = 'hidden'; }, 250);
+            });
+            currentlyOpenSwipe = null;
+        }
+
+        function initSwipeHandlers() {
+            document.querySelectorAll('.swipe-item').forEach(item => {
+                let startX = 0, startY = 0, currentX = 0, swiping = false, isHorizontal = null;
+                const content = item.querySelector('.swipe-content');
+                const revealWidth = 144;
+                const threshold = 60;
+                const actions = item.querySelector('.swipe-actions');
+
+                item.addEventListener('touchstart', e => {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    currentX = startX;
+                    swiping = true;
+                    isHorizontal = null;
+                    content.style.transition = 'none';
+                }, { passive: true });
+
+                item.addEventListener('touchmove', e => {
+                    if (!swiping) return;
+                    const dx = e.touches[0].clientX - startX;
+                    const dy = e.touches[0].clientY - startY;
+                    if (isHorizontal === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+                        isHorizontal = Math.abs(dx) > Math.abs(dy);
+                    }
+                    if (isHorizontal === false) { swiping = false; return; }
+                    if (isHorizontal !== true) return;
+                    if (actions) actions.style.visibility = 'visible';
+                    currentX = e.touches[0].clientX;
+                    let diff = currentX - startX;
+                    if (diff > 0) diff = 0;
+                    if (diff < -revealWidth) diff = -revealWidth;
+                    content.style.transform = `translateX(${diff}px)`;
+                }, { passive: true });
+
+                item.addEventListener('touchend', () => {
+                    if (!swiping || isHorizontal !== true) { swiping = false; return; }
+                    swiping = false;
+                    content.style.transition = 'transform 0.25s ease';
+                    const diff = currentX - startX;
+                    if (diff < -threshold) {
+                        if (currentlyOpenSwipe && currentlyOpenSwipe !== item) {
+                            const otherContent = currentlyOpenSwipe.querySelector('.swipe-content');
+                            otherContent.style.transition = 'transform 0.25s ease';
+                            otherContent.style.transform = 'translateX(0)';
+                            const otherActions = currentlyOpenSwipe.querySelector('.swipe-actions');
+                            if (otherActions) setTimeout(() => { otherActions.style.visibility = 'hidden'; }, 250);
+                        }
+                        content.style.transform = `translateX(-${revealWidth}px)`;
+                        currentlyOpenSwipe = item;
+                    } else {
+                        content.style.transform = 'translateX(0)';
+                        if (actions) setTimeout(() => { actions.style.visibility = 'hidden'; }, 250);
+                        if (currentlyOpenSwipe === item) currentlyOpenSwipe = null;
+                    }
+                });
+            });
+
+            document.addEventListener('touchstart', e => {
+                if (currentlyOpenSwipe && !currentlyOpenSwipe.contains(e.target)) {
+                    closeAllSwipes();
+                }
+            }, { passive: true });
+        }
+
+        let currentlyOpenAdminSwipe = null;
+
+        function closeAllAdminSwipes() {
+            document.querySelectorAll('.admin-swipe-item').forEach(item => {
+                const c = item.querySelector('.swipe-content');
+                c.style.transition = 'transform 0.25s ease';
+                c.style.transform = 'translateX(0)';
+                const a = item.querySelector('.swipe-actions');
+                if (a) setTimeout(() => { a.style.visibility = 'hidden'; }, 250);
+            });
+            currentlyOpenAdminSwipe = null;
+        }
+
+        function initAdminSwipeHandlers() {
+            document.querySelectorAll('.admin-swipe-item').forEach(item => {
+                let startX = 0, startY = 0, currentX = 0, swiping = false, isHorizontal = null;
+                const content = item.querySelector('.swipe-content');
+                const revealWidth = 144;
+                const threshold = 60;
+                const actions = item.querySelector('.swipe-actions');
+
+                item.addEventListener('touchstart', e => {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    currentX = startX;
+                    swiping = true;
+                    isHorizontal = null;
+                    content.style.transition = 'none';
+                }, { passive: true });
+
+                item.addEventListener('touchmove', e => {
+                    if (!swiping) return;
+                    const dx = e.touches[0].clientX - startX;
+                    const dy = e.touches[0].clientY - startY;
+                    if (isHorizontal === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+                        isHorizontal = Math.abs(dx) > Math.abs(dy);
+                    }
+                    if (isHorizontal === false) { swiping = false; return; }
+                    if (isHorizontal !== true) return;
+                    if (actions) actions.style.visibility = 'visible';
+                    currentX = e.touches[0].clientX;
+                    let diff = currentX - startX;
+                    if (diff > 0) diff = 0;
+                    if (diff < -revealWidth) diff = -revealWidth;
+                    content.style.transform = `translateX(${diff}px)`;
+                }, { passive: true });
+
+                item.addEventListener('touchend', () => {
+                    if (!swiping || isHorizontal !== true) { swiping = false; return; }
+                    swiping = false;
+                    content.style.transition = 'transform 0.25s ease';
+                    const diff = currentX - startX;
+                    if (diff < -threshold) {
+                        if (currentlyOpenAdminSwipe && currentlyOpenAdminSwipe !== item) {
+                            const otherContent = currentlyOpenAdminSwipe.querySelector('.swipe-content');
+                            otherContent.style.transition = 'transform 0.25s ease';
+                            otherContent.style.transform = 'translateX(0)';
+                            const otherActions = currentlyOpenAdminSwipe.querySelector('.swipe-actions');
+                            if (otherActions) setTimeout(() => { otherActions.style.visibility = 'hidden'; }, 250);
+                        }
+                        content.style.transform = `translateX(-${revealWidth}px)`;
+                        currentlyOpenAdminSwipe = item;
+                    } else {
+                        content.style.transform = 'translateX(0)';
+                        if (actions) setTimeout(() => { actions.style.visibility = 'hidden'; }, 250);
+                        if (currentlyOpenAdminSwipe === item) currentlyOpenAdminSwipe = null;
+                    }
+                });
+            });
+
+            document.addEventListener('touchstart', e => {
+                if (currentlyOpenAdminSwipe && !currentlyOpenAdminSwipe.contains(e.target)) {
+                    closeAllAdminSwipes();
+                }
+            }, { passive: true });
+        }
+
+        function toggleAdminDesktopMenu(type, id, btn) {
+            closeDesktopMenu();
+            const existing = btn.parentElement.querySelector('.desktop-dropdown');
+            if (existing) { existing.remove(); btn.classList.remove('active'); return; }
+            btn.classList.add('active');
+            const dropdown = document.createElement('div');
+            dropdown.className = 'desktop-dropdown';
+            if (type === 'member') {
+                dropdown.innerHTML = `
+                    <button onclick="event.stopPropagation(); closeDesktopMenu(); startRenameMember(${id})"><i class="fas fa-pen" style="color:#3B82F6"></i> Endre navn</button>
+                    <button class="delete-option" onclick="event.stopPropagation(); closeDesktopMenu(); deleteMember(${id})"><i class="fas fa-trash-alt"></i> Slett medlem</button>`;
+            } else {
+                dropdown.innerHTML = `
+                    <button onclick="event.stopPropagation(); closeDesktopMenu(); startRenameTask(${id})"><i class="fas fa-pen" style="color:#3B82F6"></i> Endre oppgave</button>
+                    <button class="delete-option" onclick="event.stopPropagation(); closeDesktopMenu(); deleteTaskType(${id})"><i class="fas fa-trash-alt"></i> Slett oppgave</button>`;
+            }
+            document.body.appendChild(dropdown);
+            const rect = btn.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + 4) + 'px';
+            dropdown.style.left = (rect.right - 160) + 'px';
+            const dRect = dropdown.getBoundingClientRect();
+            if (dRect.right > window.innerWidth) dropdown.style.left = (window.innerWidth - dRect.width - 8) + 'px';
+            if (dRect.bottom > window.innerHeight) dropdown.style.top = (window.innerHeight - dRect.height - 8) + 'px';
+            currentDesktopMenu = { dropdown, btn };
+        }
+
+        function showAdminContextMenu(e, type, id) {
+            if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+            e.preventDefault();
+            closeDesktopMenu();
+            const dropdown = document.createElement('div');
+            dropdown.className = 'desktop-dropdown';
+            if (type === 'member') {
+                dropdown.innerHTML = `
+                    <button onclick="event.stopPropagation(); closeDesktopMenu(); startRenameMember(${id})"><i class="fas fa-pen" style="color:#3B82F6"></i> Endre navn</button>
+                    <button class="delete-option" onclick="event.stopPropagation(); closeDesktopMenu(); deleteMember(${id})"><i class="fas fa-trash-alt"></i> Slett medlem</button>`;
+            } else {
+                dropdown.innerHTML = `
+                    <button onclick="event.stopPropagation(); closeDesktopMenu(); startRenameTask(${id})"><i class="fas fa-pen" style="color:#3B82F6"></i> Endre oppgave</button>
+                    <button class="delete-option" onclick="event.stopPropagation(); closeDesktopMenu(); deleteTaskType(${id})"><i class="fas fa-trash-alt"></i> Slett oppgave</button>`;
+            }
+            document.body.appendChild(dropdown);
+            dropdown.style.top = e.clientY + 'px';
+            dropdown.style.left = e.clientX + 'px';
+            const rect = dropdown.getBoundingClientRect();
+            if (rect.right > window.innerWidth) dropdown.style.left = (window.innerWidth - rect.width - 8) + 'px';
+            if (rect.bottom > window.innerHeight) dropdown.style.top = (window.innerHeight - rect.height - 8) + 'px';
+            currentDesktopMenu = { dropdown, btn: null };
+        }
+
+        let renameCallback = null;
+
+        function openRenameModal(title, currentValue, callback, showPoints, currentPoints) {
+            renameCallback = callback;
+            document.getElementById('renameModalTitle').innerText = title;
+            const input = document.getElementById('renameInput');
+            input.value = currentValue;
+            const pointsRow = document.getElementById('renamePointsRow');
+            const pointsInput = document.getElementById('renamePointsInput');
+            if (showPoints) {
+                pointsRow.classList.remove('hidden');
+                pointsInput.value = currentPoints !== undefined ? currentPoints : '';
+            } else {
+                pointsRow.classList.add('hidden');
+                pointsInput.value = '';
+            }
+            document.getElementById('renameModal').classList.remove('hidden');
+            setTimeout(() => input.focus(), 100);
+            input.onkeydown = function(e) { if (e.key === 'Enter') executeRename(); };
+            pointsInput.onkeydown = function(e) { if (e.key === 'Enter') executeRename(); };
+        }
+
+        function closeRenameModal() {
+            document.getElementById('renameModal').classList.add('hidden');
+            renameCallback = null;
+        }
+
+        function executeRename() {
+            const newName = document.getElementById('renameInput').value.trim();
+            const pointsInput = document.getElementById('renamePointsInput');
+            const newPoints = pointsInput.value !== '' ? parseInt(pointsInput.value) : undefined;
+            if (newName && renameCallback) {
+                renameCallback(newName, newPoints);
+            }
+            closeRenameModal();
+        }
+
+        function startRenameMember(id) {
+            closeAllAdminSwipes();
+            const m = members.find(mem => mem.id === id);
+            if (!m) return;
+            openRenameModal('Endre navn', m.name, function(newName) {
+                if (newName !== m.name) {
+                    m.name = newName;
+                    sync();
+                }
+            });
+        }
+
+        function startRenameTask(id) {
+            closeAllAdminSwipes();
+            const t = taskTypes.find(tt => tt.id === id);
+            if (!t) return;
+            openRenameModal('Endre oppgave', t.name, function(newName, newPoints) {
+                let changed = false;
+                if (newName && newName !== t.name) {
+                    const oldNameLower = t.name.toLowerCase();
+                    const newNameLower = newName.toLowerCase();
+                    t.name = newName;
+                    history.forEach(h => {
+                        h.tasks = h.tasks.map(tn => tn === oldNameLower ? newNameLower : tn);
+                    });
+                    changed = true;
+                }
+                if (newPoints !== undefined && !isNaN(newPoints) && newPoints > 0 && newPoints !== t.points) {
+                    t.points = newPoints;
+                    changed = true;
+                }
+                if (changed) {
+                    recalculateHistoryPoints();
+                    sync();
+                }
+            }, true, t.points);
         }
 
         function openDatePicker(historyId) {
+            closeAllSwipes();
             const h = history.find(i => i.id === historyId);
             if (!h) return;
-            renderCalendar(historyId, new Date(h.date).getFullYear(), new Date(h.date).getMonth(), new Date(h.date));
+            const currentDate = new Date(h.date);
+            renderCalendar(historyId, currentDate.getFullYear(), currentDate.getMonth(), currentDate);
+        }
+
+        function getEarliestYear() {
+            if (!history.length) return new Date().getFullYear();
+            let earliest = Infinity;
+            history.forEach(h => {
+                const y = new Date(h.date).getFullYear();
+                if (y < earliest) earliest = y;
+            });
+            return earliest;
         }
 
         function renderCalendar(historyId, year, month, selectedDate) {
             const existing = document.getElementById('miniCalendarOverlay');
             if (existing) existing.remove();
 
+            const currentYear = new Date().getFullYear();
+            const earliestYear = getEarliestYear();
+            if (year < earliestYear) year = earliestYear;
+            if (year > currentYear) year = currentYear;
+            const currentMonth = new Date().getMonth();
+            if (year === currentYear && month > currentMonth) month = currentMonth;
+
+            const monthNames = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
+            const dayLabels = ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'];
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            let startDow = firstDay.getDay();
+            startDow = startDow === 0 ? 6 : startDow - 1;
+
+            const selY = selectedDate.getFullYear(), selM = selectedDate.getMonth(), selD = selectedDate.getDate();
+
+            let daysHtml = dayLabels.map(d => `<div class="cal-day-label">${d}</div>`).join('');
+
+            const prevLastDay = new Date(year, month, 0).getDate();
+            for (let i = startDow - 1; i >= 0; i--) {
+                daysHtml += `<div class="cal-day other-month">${prevLastDay - i}</div>`;
+            }
+
+            const now = new Date();
+            const todayY = now.getFullYear(), todayM = now.getMonth(), todayD = now.getDate();
+            for (let d = 1; d <= lastDay.getDate(); d++) {
+                const isSel = (year === selY && month === selM && d === selD);
+                const isToday = (year === todayY && month === todayM && d === todayD);
+                const isFuture = new Date(year, month, d) > new Date(todayY, todayM, todayD);
+                let cls = 'cal-day';
+                if (isSel) cls += ' selected';
+                if (isToday) cls += ' today';
+                if (isFuture) cls += ' future';
+                daysHtml += `<div class="${cls}"${!isFuture ? ` onclick="selectCalendarDate(${historyId}, ${year}, ${month}, ${d})"` : ''}>${d}</div>`;
+            }
+
+            const totalCells = startDow + lastDay.getDate();
+            const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let d = 1; d <= remaining; d++) {
+                daysHtml += `<div class="cal-day other-month">${d}</div>`;
+            }
+
+            let yearOptionsHtml = '';
+            for (let y = currentYear; y >= earliestYear; y--) {
+                yearOptionsHtml += `<button class="${y === year ? 'active-year' : ''}" onclick="event.stopPropagation(); renderCalendar(${historyId}, ${y}, ${month}, new Date('${selectedDate.toISOString()}'))">${y}</button>`;
+            }
+
             const overlay = document.createElement('div');
             overlay.id = 'miniCalendarOverlay';
             overlay.className = 'mini-calendar-overlay';
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
-            const now = new Date();
-
-            let daysHtml = '';
-            for (let i = 0; i < adjustedFirstDay; i++) daysHtml += `<div class="cal-day other-month"></div>`;
-            for (let day = 1; day <= daysInMonth; day++) {
-                const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
-                const isToday = now.getDate() === day && now.getMonth() === month && now.getFullYear() === year;
-                const isFuture = new Date(year, month, day) > now;
-                daysHtml += `<div class="cal-day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}" 
-                             onclick="selectCalendarDate(${historyId}, ${year}, ${month}, ${day})">${day}</div>`;
-            }
-
-            const monthNames = ["Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember"];
-            
             overlay.innerHTML = `
                 <div class="mini-calendar" onclick="event.stopPropagation()">
                     <div class="cal-header">
-                        <div class="cal-year-select" style="position:relative">
-                            <span class="cal-year-label" onclick="toggleYearDropdown()">${monthNames[month]} ${year}</span>
-                            <div id="yearDropdown" class="cal-year-dropdown hidden"></div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px">
+                            <button onclick="closeCalendar()" class="text-textSub text-sm font-bold px-2 py-1">Avbryt</button>
+                            <div style="position:relative;display:inline-block;margin-left:2px">
+                                <span class="cal-year-label" onclick="event.stopPropagation(); this.nextElementSibling.classList.toggle('hidden')" style="display:inline-flex;align-items:center;gap:4px">${year} <i class="fas fa-chevron-down" style="font-size:9px"></i></span>
+                                <div class="cal-year-dropdown hidden">${yearOptionsHtml}</div>
+                            </div>
                         </div>
-                        <div class="flex gap-1">
+                        <div class="flex items-center gap-3">
                             <button onclick="renderCalendar(${historyId}, ${month === 0 ? year - 1 : year}, ${month === 0 ? 11 : month - 1}, new Date('${selectedDate.toISOString()}'))" class="text-textSub px-2 py-1"><i class="fas fa-chevron-left"></i></button>
-                            <button ${month === now.getMonth() && year === now.getFullYear() ? 'disabled class="opacity-10 px-2 py-1"' : `onclick="renderCalendar(${historyId}, ${month === 11 ? year + 1 : year}, ${month === 11 ? 0 : month + 1}, new Date('${selectedDate.toISOString()}'))" class="text-textSub px-2 py-1"`}><i class="fas fa-chevron-right"></i></button>
+                            <span class="font-bold text-sm" style="min-width:90px;text-align:center">${monthNames[month]}</span>
+                            <button ${year === new Date().getFullYear() && month === new Date().getMonth() ? 'disabled style="opacity:0.25;cursor:not-allowed" class="text-textSub px-2 py-1"' : `onclick="renderCalendar(${historyId}, ${month === 11 ? year + 1 : year}, ${month === 11 ? 0 : month + 1}, new Date('${selectedDate.toISOString()}'))" class="text-textSub px-2 py-1"`}><i class="fas fa-chevron-right"></i></button>
                         </div>
                     </div>
-                    <div class="cal-grid">
-                        <div class="cal-day-label">MA</div><div class="cal-day-label">TI</div><div class="cal-day-label">ON</div><div class="cal-day-label">TO</div><div class="cal-day-label">FR</div><div class="cal-day-label">LØ</div><div class="cal-day-label">SØ</div>
-                        ${daysHtml}
-                    </div>
+                    <div class="cal-grid">${daysHtml}</div>
                 </div>`;
             overlay.addEventListener('click', closeCalendar);
             document.body.appendChild(overlay);
@@ -900,3 +1160,4 @@
     </script>
 </body>
 </html>
+
