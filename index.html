@@ -109,7 +109,7 @@
             <div id="periodButtons" class="flex flex-wrap gap-2 text-[11px] text-textSub justify-center mb-4">
             </div>
             <div class="flex justify-center">
-                <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;" onclick="playIntroSound(7)"></canvas>
+                <canvas id="pointsChart" style="max-height: 140px; max-width: 140px;" onclick="playIntroSound()"></canvas>
             </div>
             <div id="chartLegend" class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm sm:text-base font-medium mt-4 text-textSub"></div>
         </section>
@@ -244,46 +244,58 @@
     </div>
 
     <script>
-        // --- LYD LOGIKK START ---
-        let globalAudio = new Audio('https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3');
-        let isPlaying = false;
+        // --- LYD-LOGIKK: ROBUST LØSNING FOR MOBIL/DESKTOP ---
+        let isAudioPlaying = false;
+        const audioUrl = 'https://raw.githubusercontent.com/aasleik/Kollektivet/main/Todd%20Terje%20-%20Inspector%20Norse%20(2)-%5BAudioTrimmer.com%5D.mp3';
+        const globalAudio = new Audio(audioUrl);
 
-        function playIntroSound(durationSeconds = 7) {
-            if (isPlaying) return;
-            
+        // "Unlocker" for mobil: Aktiverer lyden ved første brukerinteraksjon på skjermen
+        const unlockAudio = () => {
             globalAudio.play().then(() => {
-                isPlaying = true;
+                globalAudio.pause();
                 globalAudio.currentTime = 0;
-                globalAudio.volume = 0;
+            }).catch(() => {});
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+        };
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('touchstart', unlockAudio);
 
-                // Fade inn
+        function playIntroSound() {
+            // KRITERIE: Hvis den allerede spiller, gjør ingenting (ingen overlapp eller omstart)
+            if (isAudioPlaying) return;
+
+            isAudioPlaying = true;
+            globalAudio.volume = 0;
+            globalAudio.currentTime = 0;
+
+            globalAudio.play().then(() => {
+                // Fade inn (opp til 0.3 volum over ca 0.5 sekunder)
                 let fadeIn = setInterval(() => {
                     if (globalAudio.volume < 0.25) {
-                        globalAudio.volume = Math.min(0.3, globalAudio.volume + 0.01);
+                        globalAudio.volume = Math.min(0.3, globalAudio.volume + 0.05);
                     } else {
                         clearInterval(fadeIn);
                     }
                 }, 100);
 
-                // Planlegg stopp og fade ut
+                // Spill i 7 sekunder før fade-out starter
                 setTimeout(() => {
                     let fadeOut = setInterval(() => {
                         if (globalAudio.volume > 0.05) {
-                            globalAudio.volume -= 0.01;
+                            globalAudio.volume -= 0.05;
                         } else {
                             clearInterval(fadeOut);
                             globalAudio.pause();
-                            isPlaying = false;
+                            isAudioPlaying = false; // Nå er den klar for å kunne startes på nytt ved neste klikk
                         }
                     }, 100);
-                }, durationSeconds * 1000);
-
-            }).catch(e => {
-                console.log("Mobil blokkerte lyden:", e);
-                isPlaying = false;
+                }, 7000);
+            }).catch(() => {
+                isAudioPlaying = false;
             });
         }
-        // --- LYD LOGIKK SLUTT ---
+        // --- SLUTT LYD-LOGIKK ---
 
         const firebaseConfig = {
             apiKey: "AIzaSyAYZBldRXfzXX_CAGBzDEoz-SduPA1g_S8",
@@ -298,7 +310,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // ... resten av den originale koden fra index (15) fortsetter her ...
         const defaultTaskTypes = [
             { id: 1, name: "Redd sengen", points: 10, icon: 'bed' },
             { id: 2, name: "Laget kaffe", points: 5, icon: 'mug-hot' },
