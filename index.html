@@ -299,7 +299,7 @@
 
         // --- INNSTILLINGSMUSIKK: FADE INN/UT VED TANNHJUL ---
         // Lim inn URL til ønsket sang her:
-        const SETTINGS_MUSIC_URL = 'https://raw.githubusercontent.com/aasleik/Kollektivet/ebf0fc284e01c93afcb409aa32b5784017f458b7/Todd%20Terje%20-%20Inspector%20Norse-%5BAudioTrimmer.com%5D.mp3';
+        const SETTINGS_MUSIC_URL = 'LINN INN URL HER';
 
         let settingsMusicPlaying = false;
         let settingsFadeInterval = null;
@@ -321,23 +321,24 @@
 
         function startSettingsMusic() {
             if (settingsMusicPlaying) return;
-            settingsMusicPlaying = true;
             if (settingsFadeInterval) { clearInterval(settingsFadeInterval); settingsFadeInterval = null; }
+            settingsMusicPlaying = true;
             settingsAudio.volume = 0;
             settingsAudio.play().then(() => {
                 settingsFadeInterval = setInterval(() => {
-                    if (settingsAudio.volume < 0.1) {
-                        settingsAudio.volume = Math.min(0.18, settingsAudio.volume + 0.005);
+                    if (settingsAudio.volume < 0.18) {
+                        settingsAudio.volume = Math.min(0.2, settingsAudio.volume + 0.01);
                     } else {
                         clearInterval(settingsFadeInterval);
                         settingsFadeInterval = null;
                     }
-                }, 100);
+                }, 50);
             }).catch(() => { settingsMusicPlaying = false; });
         }
 
         function stopSettingsMusic() {
-            if (!settingsMusicPlaying) return;
+            if (!settingsMusicPlaying && settingsAudio.paused) return;
+            settingsMusicPlaying = false;
             if (settingsFadeInterval) { clearInterval(settingsFadeInterval); settingsFadeInterval = null; }
             settingsFadeInterval = setInterval(() => {
                 if (settingsAudio.volume > 0.01) {
@@ -347,7 +348,7 @@
                     settingsFadeInterval = null;
                     settingsAudio.pause();
                     settingsAudio.currentTime = 0;
-                    settingsMusicPlaying = false;
+                    settingsAudio.volume = 0;
                 }
             }, 50);
         }
